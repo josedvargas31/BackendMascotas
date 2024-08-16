@@ -5,11 +5,7 @@ import { pool } from "../database/conexion.js";
 export const listarCategorias = async (req, res) => {
   try {
     const [result] = await pool.query("SELECT * FROM categorias");
-    res.status(200).json({
-      status: 200,
-      message: "Lista de categorías",
-      data: result,
-    });
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({
       status: 500,
