@@ -15,17 +15,17 @@ export const listarMascotas = async (req, res) => {
     });
   }
 };
-
+  
 // Registrar Mascota
 export const registrarMascota = async (req, res) => {
   try {
-    const { nombre, fecha_nacimiento, estado, descripcion, esterilizado, tamano, peso, fk_id_categoria, fk_id_raza, fk_id_departamento, fk_id_municipio } = req.body;
+    const { nombre, fecha_nacimiento, estado, descripcion, esterilizado, tamano, peso, fk_id_categoria, fk_id_raza, fk_id_departamento, fk_id_municipio, sexo } = req.body;
     const files = req.files; // Obtener los archivos de la solicitud
 
     // Insertar la nueva mascota
     const [result] = await pool.query(
-      "INSERT INTO mascotas (nombre, fecha_nacimiento, estado, descripcion, esterilizado, tamano, peso, fk_id_categoria, fk_id_raza, fk_id_departamento, fk_id_municipio) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [nombre, fecha_nacimiento, estado, descripcion, esterilizado, tamano, peso, fk_id_categoria, fk_id_raza, fk_id_departamento, fk_id_municipio]
+      "INSERT INTO mascotas (nombre, fecha_nacimiento, estado, descripcion, esterilizado, tamano, peso, fk_id_categoria, fk_id_raza, fk_id_departamento, fk_id_municipio, sexo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [nombre, fecha_nacimiento, estado, descripcion, esterilizado, tamano, parseFloat(peso), fk_id_categoria, fk_id_raza, fk_id_departamento, fk_id_municipio, sexo]
     );
 
     const idMascota = result.insertId; // Obtener el ID de la nueva mascota
@@ -56,7 +56,8 @@ export const registrarMascota = async (req, res) => {
         fk_id_categoria,
         fk_id_raza,
         fk_id_departamento,
-        fk_id_municipio
+        fk_id_municipio,
+        sexo
       }
     });
   } catch (error) {
@@ -66,7 +67,6 @@ export const registrarMascota = async (req, res) => {
     });
   }
 };
-
 
 // Controlador para obtener conteo de mascotas por estado
 export const obtenerConteoPorEstado = async (req, res) => {

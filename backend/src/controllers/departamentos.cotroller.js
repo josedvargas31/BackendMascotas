@@ -5,11 +5,7 @@ import { pool } from "../database/conexion.js";
 export const listarDepartamentos = async (req, res) => {
   try {
     const [result] = await pool.query("SELECT * FROM departamentos");
-    res.status(200).json({
-      status: 200,
-      message: "Lista de departamentos",
-      data: result,
-    });
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({
       status: 500,
@@ -21,8 +17,8 @@ export const listarDepartamentos = async (req, res) => {
 // Registrar Departamento
 export const registrarDepartamento = async (req, res) => {
   try {
-    const { nombre } = req.body;
-    const [result] = await pool.query("INSERT INTO departamentos (nombre) VALUES (?)", [nombre]);
+    const { nombre_departamento, codigo_dane } = req.body;
+    const [result] = await pool.query("INSERT INTO departamentos (nombre_departamento, codigo_dane) VALUES (?,?)", [nombre_departamento, codigo_dane]);
     if (result.affectedRows > 0) {
       res.status(200).json({
         status: 200,
@@ -46,8 +42,8 @@ export const registrarDepartamento = async (req, res) => {
 export const actualizarDepartamento = async (req, res) => {
   try {
     const { id_departamento } = req.params;
-    const { nombre } = req.body;
-    const [result] = await pool.query("UPDATE departamentos SET nombre=? WHERE id_departamento=?", [nombre, id_departamento]);
+    const { nombre_departamento, codigo_dane } = req.body;
+    const [result] = await pool.query("UPDATE departamentos SET nombre_departamento=?, codigo_dane=? WHERE id_departamento=?", [nombre_departamento, codigo_dane, id_departamento]);
     if (result.affectedRows > 0) {
       res.status(200).json({
         status: 200,
