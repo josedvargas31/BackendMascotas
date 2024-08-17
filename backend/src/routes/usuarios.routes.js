@@ -6,7 +6,7 @@ import upload from '../config/multer.config.js';
 import { uploadImage } from "../config/imagenes.controller.js";
 const usuarioRoutes = Router();
 
-usuarioRoutes.get("/listar", /* validarToken, */ listarUsuarios);
+usuarioRoutes.get("/listar", validarToken, listarUsuarios);
 usuarioRoutes.post('/registrar', upload.single('img'), uploadImage, registrarUsuario);
 usuarioRoutes.get('/conteo/rol', obtenerConteoPorEstado);
 usuarioRoutes.put('/actualizar/:id_usuario', validarToken, upload.single('img'), uploadImage,  actualizarUsuario);
