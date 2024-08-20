@@ -2,14 +2,15 @@ import { Router } from "express";
 import { listarMascotas, registrarMascota, actualizarMascota, eliminarMascota, buscarMascota, obtenerConteoPorEstado } from "../controllers/mascotas.controller.js";
 import upload from '../config/multer.config.js'; 
 import { uploadImage } from "../config/imagenes.controller.js";
+import { validarToken } from "../controllers/validacion.controller.js";
 
 const MascotaRoutes = Router();
 
-MascotaRoutes.get("/listar", listarMascotas);
-MascotaRoutes.post("/registrar",  upload.array('imagenes', 10), uploadImage, registrarMascota);
-MascotaRoutes.get('/conteo/estado', obtenerConteoPorEstado);
-MascotaRoutes.put("/actualizar/:id_mascota",  upload.array('imagenes', 10), uploadImage, actualizarMascota);
-MascotaRoutes.delete("/eliminar/:id_mascota", eliminarMascota);
-MascotaRoutes.get("/buscar/:id_mascota", buscarMascota);
+MascotaRoutes.get("/listar",  validarToken, listarMascotas);
+MascotaRoutes.post("/registrar",  validarToken,  upload.array('imagenes', 10), uploadImage, registrarMascota);
+MascotaRoutes.get('/conteo/estado', validarToken, obtenerConteoPorEstado);
+MascotaRoutes.put("/actualizar/:id_mascota", validarToken,  upload.array('imagenes', 10), uploadImage, actualizarMascota);
+MascotaRoutes.delete("/eliminar/:id_mascota", validarToken, eliminarMascota);
+MascotaRoutes.get("/buscar/:id_mascota", validarToken, buscarMascota);
 
 export default MascotaRoutes;
