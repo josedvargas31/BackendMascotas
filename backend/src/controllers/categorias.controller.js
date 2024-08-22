@@ -17,8 +17,11 @@ export const listarCategorias = async (req, res) => {
 // Registrar Categoría
 export const registrarCategoria = async (req, res) => {
   try {
-    const { nombre } = req.body;
-    const [result] = await pool.query("INSERT INTO categorias (nombre) VALUES (?)", [nombre]);
+    const { nombre_categoria, estado } = req.body;
+    const [result] = await pool.query(
+      "INSERT INTO categorias (nombre_categoria, estado) VALUES (?, ?)",
+      [nombre_categoria, estado]
+    );
     if (result.affectedRows > 0) {
       res.status(200).json({
         status: 200,
@@ -38,21 +41,35 @@ export const registrarCategoria = async (req, res) => {
   }
 };
 
+
 // Actualizar Categoría por ID
 export const actualizarCategoria = async (req, res) => {
   try {
     const { id_categoria } = req.params;
-    const { nombre } = req.body;
-    const [result] = await pool.query("UPDATE categorias SET nombre=? WHERE id_categoria=?", [nombre, id_categoria]);
+    const { nombre_categoria, estado } = req.body;
+    
+    // Asegúrate de que ambos campos estén presentes
+    if (!nombre_categoria || !estado) {
+      return res.status(400).json({
+        status: 400,
+        message: "Faltan campos requeridos",
+      });
+    }
+
+    const [result] = await pool.query(
+      "UPDATE categorias SET nombre_categoria = ?, estado = ? WHERE id_categoria = ?",
+      [nombre_categoria, estado, id_categoria]
+    );
+    
     if (result.affectedRows > 0) {
       res.status(200).json({
         status: 200,
         message: "Categoría actualizada",
       });
     } else {
-      res.status(403).json({
-        status: 403,
-        message: "No se actualizó la categoría",
+      res.status(404).json({
+        status: 404,
+        message: "Categoría no encontrada o no se realizaron cambios",
       });
     }
   } catch (error) {
@@ -62,6 +79,7 @@ export const actualizarCategoria = async (req, res) => {
     });
   }
 };
+
 
 // Eliminar Categoría por ID
 export const eliminarCategoria = async (req, res) => {
