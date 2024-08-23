@@ -1,7 +1,7 @@
 import { pool } from "../database/conexion.js";
 import fs from "fs";
 import path from "path";
-// import { validationResult } from "express-validator";
+import { validationResult } from "express-validator";
 
 // Listar Mascotas con Imágenes
 export const listarMascotas = async (req, res) => {
@@ -10,7 +10,7 @@ export const listarMascotas = async (req, res) => {
 		const [result] = await pool.query(`
 			SELECT 
 				m.id_mascota,
-				m.nombre,
+				m.nombre_mascota,
 				m.fecha_nacimiento,
 				m.estado,
 				m.descripcion,
@@ -29,13 +29,13 @@ export const listarMascotas = async (req, res) => {
 
 		// Agrupar las imágenes por mascota
 		const mascotas = result.reduce((acc, item) => {
-			const { id_mascota, nombre, fecha_nacimiento, estado, descripcion, esterilizado, tamano, peso, fk_id_categoria, fk_id_raza, fk_id_departamento, fk_id_municipio, sexo, ruta_imagen } = item;
+			const { id_mascota, nombre_mascota, fecha_nacimiento, estado, descripcion, esterilizado, tamano, peso, fk_id_categoria, fk_id_raza, fk_id_departamento, fk_id_municipio, sexo, ruta_imagen } = item;
 
 			// Verificar si la mascota ya está en el acumulador
 			if (!acc[id_mascota]) {
 				acc[id_mascota] = {
 					id_mascota,
-					nombre,
+					nombre_mascota,
 					fecha_nacimiento,
 					estado,
 					descripcion,
@@ -76,7 +76,7 @@ export const listarMascotas = async (req, res) => {
 export const registrarMascota = async (req, res) => {
 	try {
 		const {
-			nombre,
+			nombre_mascota,
 			fecha_nacimiento,
 			estado = "En Adopcion", // Valor por defecto
 			descripcion,
@@ -94,9 +94,9 @@ export const registrarMascota = async (req, res) => {
 
 		// Insertar la nueva mascota
 		const [result] = await pool.query(
-			"INSERT INTO mascotas (nombre, fecha_nacimiento, estado, descripcion, esterilizado, tamano, peso, fk_id_categoria, fk_id_raza, fk_id_departamento, fk_id_municipio, sexo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+			"INSERT INTO mascotas (nombre_mascota, fecha_nacimiento, estado, descripcion, esterilizado, tamano, peso, fk_id_categoria, fk_id_raza, fk_id_departamento, fk_id_municipio, sexo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 			[
-				nombre,
+				nombre_mascota,
 				fecha_nacimiento,
 				estado,
 				descripcion,
@@ -144,6 +144,165 @@ export const registrarMascota = async (req, res) => {
 	}
 };
 
+// // Controlador para iniciar el proceso de adopción
+// export const iniciarAdopcion = async (req, res) => {
+//     try {
+//         // Validar los datos de entrada
+//         const errors = validationResult(req);
+//         if (!errors.isEmpty()) {
+//             return res.status(400).json({ errors: errors.array() });
+//         }
+
+//         // Obtener parámetros y cuerpo de la solicitud
+//         const { id_mascota } = req.params;
+//         const { id_usuario } = req.body;
+
+//         // Verificar si el usuario existe
+//         const [usuarioResult] = await pool.query("SELECT id_usuario FROM usuarios WHERE id_usuario = ?", [id_usuario]);
+//         if (usuarioResult.length === 0) {
+//             return res.status(404).json({
+//                 status: 404,
+//                 message: 'No se encontró el usuario'
+//             });
+//         }
+
+//         // Verificar si la mascota existe y su estado actual
+//         const [mascotaResult] = await pool.query("SELECT estado FROM mascotas WHERE id_mascota = ?", [id_mascota]);
+
+//         if (mascotaResult.length > 0) {
+//             const estadoMascota = mascotaResult[0].estado;
+
+//             // Verificar si la mascota está disponible para adopción
+//             if (estadoMascota === 'En Adopcion') {
+//                 // Iniciar el proceso de adopción
+//                 const [insertAdopcion] = await pool.query(
+//                     "INSERT INTO adopciones (fk_id_mascota, fk_id_usuario_adoptante, fecha_adopcion, estado) VALUES (?, ?, CURDATE(), 'proceso de adopcion')",
+//                     [id_mascota, id_usuario]
+//                 );
+
+//                 // Verificar si la adopción se insertó correctamente
+//                 if (insertAdopcion.affectedRows > 0) {
+//                     // Actualizar el estado de la mascota
+//                     await pool.query("UPDATE mascotas SET estado = 'Reservado' WHERE id_mascota = ?", [id_mascota]);
+//                     res.status(200).json({
+//                         status: 200,
+//                         message: 'Proceso de adopción iniciado correctamente'
+//                     });
+//                 } else {
+//                     res.status(500).json({
+//                         status: 500,
+//                         message: 'No se pudo iniciar el proceso de adopción'
+//                     });
+//                 }
+//             } else {
+//                 res.status(400).json({
+//                     status: 400,
+//                     message: 'La mascota no está disponible para adopción'
+//                 });
+//             }
+//         } else {
+//             res.status(404).json({
+//                 status: 404,
+//                 message: 'No se encontró la mascota'
+//             });
+//         }
+//     } catch (error) {
+//         res.status(500).json({
+//             status: 500,
+//             message: 'Error en el sistema: ' + error.message
+//         });
+//     }
+// };
+
+// // Controlador para administrar la adopción (aceptar o denegar)
+// export const administrarAdopcion = async (req, res) => {
+//     try {
+//         // Validar los datos de entrada
+//         const errors = validationResult(req);
+//         if (!errors.isEmpty()) {
+//             return res.status(400).json({ errors: errors.array() });
+//         }
+
+//         // Obtener parámetros y cuerpo de la solicitud
+//         const { id_adopcion } = req.params;
+//         const { accion } = req.body;
+
+//         // Verificar si la solicitud de adopción existe
+//         const [adopcionResult] = await pool.query("SELECT * FROM adopciones WHERE id_adopcion = ?", [id_adopcion]);
+//         if (adopcionResult.length === 0) {
+//             return res.status(404).json({
+//                 status: 404,
+//                 message: 'No se encontró la solicitud de adopción'
+//             });
+//         }
+
+//         const adopcion = adopcionResult[0];
+//         let nuevoEstadoMascota;
+
+//         // Procesar la acción solicitada
+//         if (accion === 'aceptar') {
+//             nuevoEstadoMascota = 'Adoptado';
+//             await pool.query("UPDATE adopciones SET estado = 'aceptada' WHERE id_adopcion = ?", [id_adopcion]);
+//         } else if (accion === 'denegar') {
+//             nuevoEstadoMascota = 'En Adopcion'; // Estado a recuperar si se deniega la adopción
+//             await pool.query("UPDATE adopciones SET estado = 'rechazada' WHERE id_adopcion = ?", [id_adopcion]);
+//         } else {
+//             return res.status(400).json({
+//                 status: 400,
+//                 message: 'Acción no válida'
+//             });
+//         }
+
+//         // Actualizar el estado de la mascota
+//         const [updateResult] = await pool.query("UPDATE mascotas SET estado = ? WHERE id_mascota = ?", [nuevoEstadoMascota, adopcion.fk_id_mascota]);
+//         if (updateResult.affectedRows > 0) {
+//             res.status(200).json({
+//                 status: 200,
+//                 message: `La adopción ha sido ${accion === 'aceptar' ? 'aceptada' : 'denegada'}`
+//             });
+//         } else {
+//             res.status(404).json({
+//                 status: 404,
+//                 message: 'No se pudo actualizar el estado de la mascota'
+//             });
+//         }
+//     } catch (error) {
+//         res.status(500).json({
+//             status: 500,
+//             message: 'Error en el sistema: ' + error.message
+//         });
+//     }
+// };
+
+// // Controlador para listar mascotas con usuarios asociados en proceso de adopción
+// export const listarMascotasConUsuarios = async (req, res) => {
+//     try {
+//         const [mascotasResult] = await pool.query(
+//             `SELECT m.*, u.id_usuario, u.nombre, u.apellido, u.correo, u.telefono, a.estado AS estado_adopcion
+//              FROM mascotas m
+//              JOIN adopciones a ON m.id_mascota = a.fk_id_mascota
+//              JOIN usuarios u ON a.fk_id_usuario_adoptante = u.id_usuario
+//              WHERE m.estado = 'Reservado' AND a.estado = 'proceso de adopcion'`
+//         );
+
+//         if (mascotasResult.length === 0) {
+//             return res.status(404).json({
+//                 status: 404,
+//                 message: 'No se encontraron mascotas en proceso de adopción'
+//             });
+//         }
+
+//         res.status(200).json(mascotasResult);
+//     } catch (error) {
+//         console.error('Error al listar mascotas con usuarios:', error); // Registro del error en la consola del servidor
+//         res.status(500).json({
+//             status: 500,
+//             message: 'Error en el sistema: ' + error.message
+//         });
+//     }
+// };
+
+
 // Controlador para obtener conteo de mascotas por estado
 export const obtenerConteoPorEstado = async (req, res) => {
 	try {
@@ -168,7 +327,7 @@ export const actualizarMascota = async (req, res) => {
 	try {
 		const { id_mascota } = req.params;
 		const {
-			nombre,
+			nombre_mascota,
 			fecha_nacimiento,
 			estado,
 			descripcion,
@@ -187,12 +346,12 @@ export const actualizarMascota = async (req, res) => {
 		// Actualizar la información de la mascota
 		const [result] = await pool.query(
 			`UPDATE mascotas 
-			 SET nombre=?, fecha_nacimiento=?, estado=?, descripcion=?, 
+			 SET nombre_mascota=?, fecha_nacimiento=?, estado=?, descripcion=?, 
 			 esterilizado=?, tamano=?, peso=?, fk_id_categoria=?, fk_id_raza=?, 
 			 fk_id_departamento=?, fk_id_municipio=?, sexo=? 
 			 WHERE id_mascota=?`,
 			[
-				nombre,
+				nombre_mascota,
 				fecha_nacimiento,
 				estado,
 				descripcion,
@@ -242,7 +401,7 @@ export const actualizarMascota = async (req, res) => {
 				message: "Mascota actualizada exitosamente",
 				data: {
 					id_mascota,
-					nombre,
+					nombre_mascota,
 					fecha_nacimiento,
 					estado,
 					descripcion,

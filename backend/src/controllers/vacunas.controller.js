@@ -5,11 +5,15 @@ import { pool } from "../database/conexion.js";
 export const listarVacunas = async (req, res) => {
   try {
     const [result] = await pool.query("SELECT * FROM vacunas");
-    res.status(200).json({
-      status: 200,
-      message: "Lista de vacunas",
-      data: result,
-    });
+    if (result.length > 0) {
+      res.status(200).json(result);
+    } else {
+      res.status(403).json({
+        status: 403,
+        message: "No hay vacunas para listar"
+      })
+    }
+    
   } catch (error) {
     res.status(500).json({
       status: 500,
