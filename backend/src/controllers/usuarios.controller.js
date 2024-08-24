@@ -259,3 +259,282 @@ export const verificarExistencia = async (req, res) => {
 		res.status(500).json({ error: "Error en el servidor" });
 	}
 };
+
+//canacue
+//perfil y solicitud de cambio de rol
+//perfil:
+export const Perfil = async (req, res) => {
+    try {
+        const { id_usuario } = req.params;
+        const [result] = await pool.query("SELECT * FROM usuarios WHERE id_usuario = ?", [id_usuario]);
+
+        if (result.length > 0) {
+            const usuariosConImagenes = result.map(usuario => ({
+                ...usuario,
+                img: usuario.img ? `${req.protocol}://${req.get('host')}/uploads/${usuario.img}` : null
+            }));
+
+            res.status(200).json(usuariosConImagenes);
+        } else {
+            res.status(404).json({
+                status: 404,
+                message: "Usuario no encontrado",
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            status: 500,
+            message: "Error en el servidor " + error.message,
+        });
+    }
+};
+//actualizar perfil 
+export const actualizarPerfilUsuario = async (req, res) => {
+	try {
+		const { id_usuario } = req.params;
+		const {
+			nombre,
+			apellido,
+			direccion,
+			telefono,
+			correo,
+			tipo_documento,
+			password,
+		} = req.body;
+		const img = req.file ? req.file.filename : null; // Obtener el nombre del archivo de la solicitud
+
+		// Obtener el usuario actual
+		const [currentUsuario] = await pool.query(
+			"SELECT img, password FROM usuarios WHERE id_usuario=?",
+			[id_usuario]
+		);
+		const currentImg = currentUsuario.length > 0 ? currentUsuario[0].img : null;
+		const currentPassword =
+			currentUsuario.length > 0 ? currentUsuario[0].password : null;
+
+		// Encriptar la nueva contraseña si se proporciona
+		const hashedPassword = password
+			? await bcrypt.hash(password, 10)
+			: currentPassword;
+
+		const [result] = await pool.query(
+			"UPDATE usuarios SET nombre=?, apellido=?, direccion=?, telefono=?, correo=?, tipo_documento=?, password=?, img=? WHERE id_usuario=?",
+			[
+				nombre,
+				apellido,
+				direccion,
+				telefono,
+				correo,
+				tipo_documento,
+				hashedPassword,
+				img || currentImg,
+				id_usuario,
+			]
+		);
+
+		if (result.affectedRows > 0) {
+			if (img && currentImg) {
+				// Eliminar la imagen anterior del servidor
+				fs.unlink(path.join("uploads", currentImg), (err) => {
+					if (err)
+						console.error("No se pudo eliminar la imagen anterior:", err);
+				});
+			}
+
+			res.status(200).json({
+				status: 200,
+				message: "Usuario actualizado exitosamente",
+				data: { ...req.body, img: img || currentImg },
+			});
+		} else {
+			res.status(403).json({
+				status: 403,
+				message: "No se actualizó el usuario",
+			});
+		}
+	} catch (error) {
+		res.status(500).json({
+			status: 500,
+			message: "Error en el servidor: " + error.message,
+		});
+	}
+};
+
+//notificaciones:
+//solicitar cambio de rol
+export const solicitarCambioRol = async (req, res) => {
+    try {
+        const { id_usuario, nuevoRol } = req.params;
+        const [usuarioRows] = await pool.query("SELECT * FROM usuarios WHERE id_usuario = ?", [id_usuario]);
+
+        if (usuarioRows.length === 0) {
+            return res.status(404).json({
+                status: 404,
+                message: "Usuario no encontrado",
+            });
+        }
+
+        const usuarioActual = usuarioRows[0];
+        const rolActual = usuarioActual.rol;
+
+        if (rolActual === 'superusuario') {
+            return res.status(403).json({
+                status: 403,
+                message: "Los superusuarios no pueden solicitar cambios de rol",
+            });
+        }
+
+        // Obtener el ID del super-usuario
+        const [superUsuarioRows] = await pool.query("SELECT id_usuario FROM usuarios WHERE rol = 'superusuario'");
+        if (superUsuarioRows.length > 0) {
+            const idSuperUsuario = superUsuarioRows[0].id_usuario;
+
+            // Enviar notificación al Super-Usuario con el ID del usuario solicitante
+            const [result] = await pool.query(
+                "INSERT INTO notificaciones (id_usuario, mensaje, leido, estado) VALUES (?, ?, ?, ?)",
+                [idSuperUsuario, `El usuario ${id_usuario} ha solicitado cambiar su rol de ${rolActual} a ${nuevoRol}`, false, 'pendiente']
+            );
+
+            if (result.affectedRows > 0) {
+                return res.status(200).json({
+                    status: 200,
+                    message: "Solicitud de cambio de rol enviada exitosamente",
+                });
+            } else {
+                return res.status(500).json({
+                    status: 500,
+                    message: "No se pudo registrar la solicitud",
+                });
+            }
+        } else {
+            return res.status(404).json({
+                status: 404,
+                message: "Super-Usuario no encontrado",
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            status: 500,
+            message: "Error en el servidor: " + error.message,
+        });
+    }
+};
+//listar notificaciones
+export const listarNotificaciones = async (req, res) => {
+    try {
+        const { id_usuario } = req.params;
+        
+        // Consulta las notificaciones del usuario
+        const query = `
+            SELECT n.id_notificacion, 
+                   n.mensaje, 
+                   n.leido, 
+                   n.fecha, 
+                   n.estado
+            FROM notificaciones n
+            WHERE n.id_usuario = ?
+        `;
+        const [notificaciones] = await pool.query(query, [id_usuario]);
+
+        // Obtener información del usuario que hizo la solicitud
+        const resultados = await Promise.all(notificaciones.map(async (notificacion) => {
+            // Extraer el id_usuario del mensaje
+            const mensajeParts = notificacion.mensaje.split(' ');
+            const idSolicitante = mensajeParts.find(part => !isNaN(part));
+            
+            // Obtener información del usuario
+            const [usuario] = await pool.query("SELECT nombre, correo FROM usuarios WHERE id_usuario = ?", [idSolicitante]);
+            return {
+                ...notificacion,
+                nombre_solicitante: usuario.length > 0 ? usuario[0].nombre : 'Desconocido',
+                correo_solicitante: usuario.length > 0 ? usuario[0].correo : 'Desconocido',
+            };
+        }));
+
+        res.status(200).json(resultados);
+    } catch (error) {
+        res.status(500).json({
+            status: 500,
+            message: "Error en el servidor: " + error.message,
+        });
+    }
+};
+//manejar notificaciones
+export const manejarNotificacion = async (req, res) => {
+    try {
+        const { id_notificacion } = req.params;
+        const { estado } = req.body; // Puede ser 'aprobado' o 'denegado'
+
+        // Actualizar el estado de la notificación
+        const [result] = await pool.query("UPDATE notificaciones SET estado = ? WHERE id_notificacion = ?", [estado, id_notificacion]);
+        
+        if (result.affectedRows > 0) {
+            // Obtener la notificación actualizada
+            const [updatedNotification] = await pool.query("SELECT * FROM notificaciones WHERE id_notificacion = ?", [id_notificacion]);
+            const notificacion = updatedNotification[0];
+            
+            // Extraer el ID del usuario solicitante
+            const mensajeParts = notificacion.mensaje.split(' ');
+            const idSolicitante = mensajeParts.find(part => !isNaN(part));
+            
+            // Obtener información del super-usuario
+            const [superUsuarioRows] = await pool.query("SELECT nombre, telefono FROM usuarios WHERE rol = 'superusuario'");
+            const superUsuario = superUsuarioRows[0];
+
+            // Crear una nueva notificación para el usuario solicitante dependiendo del estado
+            let mensajeNotificacion;
+            if (estado === 'aprobado') {
+                mensajeNotificacion = `El Super Usuario ${superUsuario.nombre} ha aceptado tu solicitud de cambio de rol. Para continuar con el cambio de rol, debes comunicarte al WhatsApp ${superUsuario.telefono} de ${superUsuario.nombre} para confirmar el cambio.`;
+            } else if (estado === 'denegado') {
+                mensajeNotificacion = `Tu solicitud de cambio de rol fue denegada por el Super Usuario ${superUsuario.nombre}.`;
+            }
+
+            await pool.query(
+                "INSERT INTO notificaciones (id_usuario, mensaje, leido, estado) VALUES (?, ?, ?, ?)",
+                [idSolicitante, mensajeNotificacion, false, 'pendiente']
+            );
+
+            res.status(200).json({
+                status: 200,
+                message: `Solicitud ${estado} exitosamente`,
+                data: notificacion,
+            });
+        } else {
+            res.status(404).json({
+                status: 404,
+                message: "Notificación no encontrada",
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            status: 500,
+            message: "Error en el servidor: " + error.message,
+        });
+    }
+};
+//eliminar notificaciones
+export const eliminarNotificacion = async (req, res) => {
+    try {
+        const { id_notificacion } = req.params;
+
+        // Eliminar la notificación de la base de datos
+        const [result] = await pool.query("DELETE FROM notificaciones WHERE id_notificacion = ?", [id_notificacion]);
+
+        if (result.affectedRows > 0) {
+            return res.status(200).json({
+                status: 200,
+                message: "Notificación eliminada exitosamente",
+            });
+        } else {
+            return res.status(404).json({
+                status: 404,
+                message: "Notificación no encontrada",
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            status: 500,
+            message: "Error en el servidor: " + error.message,
+        });
+    }
+};
