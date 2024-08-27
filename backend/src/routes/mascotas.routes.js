@@ -9,7 +9,7 @@ const MascotaRoutes = Router();
 MascotaRoutes.get("/listar",  /* validarToken, */ listarMascotas);
 MascotaRoutes.post("/registrar",  validarToken,  upload.array('imagenes', 10), uploadImage, registrarMascota);
 MascotaRoutes.get('/conteo/estado', validarToken, obtenerConteoPorEstado);
-MascotaRoutes.put("/actualizar/:id_mascota", validarToken,  upload.array('imagenes', 10), uploadImage, actualizarMascota);
+MascotaRoutes.put("/actualizar/:id_mascota", /* validarToken, */  upload.array('imagenes', 10), uploadImage, actualizarMascota);
 MascotaRoutes.delete("/eliminar/:id_mascota", validarToken, eliminarMascota);
 MascotaRoutes.get("/buscar/:id_mascota", validarToken, buscarMascota);
 /*  */

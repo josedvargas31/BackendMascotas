@@ -3,74 +3,94 @@ import fs from "fs";
 import path from "path";
 import { validationResult } from "express-validator";
 
-// Listar Mascotas con Imágenes
+// Listar Mascotas con Imágenes y Detalles Asociados
 export const listarMascotas = async (req, res) => {
-	try {
-		// Consulta SQL para obtener mascotas y sus imágenes asociadas
-		const [result] = await pool.query(`
-			SELECT 
-				m.id_mascota,
-				m.nombre_mascota,
-				m.fecha_nacimiento,
-				m.estado,
-				m.descripcion,
-				m.esterilizado,
-				m.tamano,
-				m.peso,
-				m.fk_id_categoria,
-				m.fk_id_raza,
-				m.fk_id_departamento,
-				m.fk_id_municipio,
-				m.sexo,
-				i.ruta_imagen
-			FROM mascotas m
-			LEFT JOIN imagenes i ON m.id_mascota = i.fk_id_mascota
-		`);
+    try {
+        // Consulta SQL para obtener mascotas y sus imágenes asociadas, incluyendo los nombres de las FK
+        const [result] = await pool.query(`
+            SELECT 
+                m.id_mascota,
+                m.nombre_mascota,
+                m.fecha_nacimiento,
+                m.estado,
+                m.descripcion,
+                m.esterilizado,
+                m.tamano,
+                m.peso,
+                c.nombre_categoria AS categoria,
+                r.nombre_raza AS raza,
+                d.nombre_departamento AS departamento,
+                mu.nombre_municipio AS municipio,
+                m.sexo,
+                i.ruta_imagen
+            FROM mascotas m
+            LEFT JOIN imagenes i ON m.id_mascota = i.fk_id_mascota
+            LEFT JOIN categorias c ON m.fk_id_categoria = c.id_categoria
+            LEFT JOIN razas r ON m.fk_id_raza = r.id_raza
+            LEFT JOIN departamentos d ON m.fk_id_departamento = d.id_departamento
+            LEFT JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
+        `);
 
-		// Agrupar las imágenes por mascota
-		const mascotas = result.reduce((acc, item) => {
-			const { id_mascota, nombre_mascota, fecha_nacimiento, estado, descripcion, esterilizado, tamano, peso, fk_id_categoria, fk_id_raza, fk_id_departamento, fk_id_municipio, sexo, ruta_imagen } = item;
+        // Agrupar las imágenes por mascota
+        const mascotas = result.reduce((acc, item) => {
+            const {
+                id_mascota,
+                nombre_mascota,
+                fecha_nacimiento,
+                estado,
+                descripcion,
+                esterilizado,
+                tamano,
+                peso,
+                categoria,
+                raza,
+                departamento,
+                municipio,
+                sexo,
+                ruta_imagen
+            } = item;
 
-			// Verificar si la mascota ya está en el acumulador
-			if (!acc[id_mascota]) {
-				acc[id_mascota] = {
-					id_mascota,
-					nombre_mascota,
-					fecha_nacimiento,
-					estado,
-					descripcion,
-					esterilizado,
-					tamano,
-					peso,
-					fk_id_categoria,
-					fk_id_raza,
-					fk_id_departamento,
-					fk_id_municipio,
-					sexo,
-					imagenes: []
-				};
-			}
+            // Verificar si la mascota ya está en el acumulador
+            if (!acc[id_mascota]) {
+                acc[id_mascota] = {
+                    id_mascota,
+                    nombre_mascota,
+                    fecha_nacimiento,
+                    estado,
+                    descripcion,
+                    esterilizado,
+                    tamano,
+                    peso,
+                    categoria,
+                    raza,
+                    departamento,
+                    municipio,
+                    sexo,
+                    imagenes: []
+                };
+            }
 
-			// Agregar la imagen a la mascota correspondiente
-			if (ruta_imagen) {
-				acc[id_mascota].imagenes.push(ruta_imagen);
-			}
+            // Agregar la imagen a la mascota correspondiente
+            if (ruta_imagen) {
+                acc[id_mascota].imagenes.push(ruta_imagen);
+            }
 
-			return acc;
-		}, {});
+            return acc;
+        }, {});
 
-		// Convertir el objeto en un array
-		const mascotasArray = Object.values(mascotas);
+        // Convertir el objeto en un array
+        const mascotasArray = Object.values(mascotas);
 
-		// Enviar la respuesta
-		res.status(200).json(mascotasArray);
-	} catch (error) {
-		res.status(500).json({
-			status: 500,
-			message: "Error en el servidor: " + error.message,
-		});
-	}
+        // Enviar la respuesta
+        res.status(200).json(mascotasArray);
+    } catch (error) {
+        res.status(500).json({
+            status: 500,
+            message: "Error en el servidor: " + error.message,
+        });
+    }
 };
+
 
 // Registrar Mascota
 export const registrarMascota = async (req, res) => {

@@ -9,7 +9,7 @@ export const validar = async (req, res) => {
 
         // Consultar al usuario por correo
         const [rows] = await pool.query(
-            'SELECT * FROM usuarios WHERE correo = ?',
+            'SELECT * FROM usuarios WHERE BINARY correo = ?',
             [correo]
         );
 

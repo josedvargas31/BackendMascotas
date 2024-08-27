@@ -3,8 +3,9 @@ import { pool } from "../database/conexion.js";
 
 // Listar Vacunas
 export const listarVacunas = async (req, res) => {
+  const { id_mascota } = req.params;
   try {
-    const [result] = await pool.query("SELECT * FROM vacunas");
+    const [result] = await pool.query("SELECT * FROM vacunas", [id_mascota]);
     if (result.length > 0) {
       res.status(200).json(result);
     } else {
@@ -113,11 +114,7 @@ export const buscarVacuna = async (req, res) => {
     const { id_vacuna } = req.params;
     const [result] = await pool.query("SELECT * FROM vacunas WHERE id_vacuna=?", [id_vacuna]);
     if (result.length > 0) {
-      res.status(200).json({
-        status: 200,
-        message: "Vacuna encontrada",
-        data: result[0],
-      });
+      res.status(200).json(result);
     } else {
       res.status(403).json({
         status: 403,
