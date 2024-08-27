@@ -90,6 +90,64 @@ export const listarAdopciones = async (req, res) => {
   }
 };
 
+// Listar mascotas aceptadas por parte del usuario
+export const listarMascotasAceptadas = async (req, res) => {
+  try {
+    const { id_usuario } = req.params; // Obtener el ID del usuario de los parámetros de la solicitud
+
+    const [results] = await pool.query(`
+      SELECT m.*
+      FROM adopciones a
+      INNER JOIN mascotas m ON a.fk_id_mascota = m.id_mascota
+      WHERE a.fk_id_usuario_adoptante = ? AND a.estado = 'aceptada';
+    `, [id_usuario]);
+
+    if (results.length > 0) {
+      res.status(200).json(results);
+    } else {
+      res.status(403).json({
+        status: 403,
+        message: "No se encontraron mascotas aceptadas para este usuario",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: "Error en el servidor: " + error.message,
+    });
+  }
+};
+
+// Listar Mascotas en Proceso de Adopción por Usuario
+export const listarMascotasEnProcesoAdopcion = async (req, res) => {
+  try {
+    const { fk_id_usuario_adoptante } = req.params; // Obtén el ID del usuario adoptante desde los parámetros de la solicitud
+    
+    const query = `
+      SELECT a.id_adopcion, m.nombre_mascota, m.sexo, m.fk_id_raza, a.fecha_adopcion, a.estado 
+      FROM adopciones a 
+      JOIN mascotas m ON a.fk_id_mascota = m.id_mascota 
+      WHERE a.fk_id_usuario_adoptante = ? AND a.estado = 'proceso de adopcion'
+    `;
+
+    const [result] = await pool.query(query, [fk_id_usuario_adoptante]); // Ejecuta la consulta con el ID del usuario
+
+    if (result.length > 0) {
+      res.status(200).json(result);
+    } else {
+      res.status(404).json({
+        status: 404,
+        message: "No se encontraron mascotas en proceso de adopción para este usuario",
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: "Error en el servidor: " + error.message,
+    });
+  }
+};
+
 // Controlador para iniciar el proceso de adopción
 export const iniciarAdopcion = async (req, res) => {
   try {
@@ -119,11 +177,11 @@ export const iniciarAdopcion = async (req, res) => {
           const estadoMascota = mascotaResult[0].estado;
 
           // Verificar si la mascota está disponible para adopción
-          if (estadoMascota === 'En Adopcion' || estadoMascota === 'Urgente' ) {
-              // Iniciar el proceso de adopción
+          if (estadoMascota === 'En Adopcion' || estadoMascota === 'Urgente') {
+              // Iniciar el proceso de adopción y guardar el estado previo
               const [insertAdopcion] = await pool.query(
-                  "INSERT INTO adopciones (fk_id_mascota, fk_id_usuario_adoptante, fecha_adopcion, estado) VALUES (?, ?, CURDATE(), 'proceso de adopcion')",
-                  [id_mascota, id_usuario]
+                  "INSERT INTO adopciones (fk_id_mascota, fk_id_usuario_adoptante, fecha_adopcion, estado, estado_anterior) VALUES (?, ?, CURDATE(), 'proceso de adopcion', ?)",
+                  [id_mascota, id_usuario, estadoMascota]
               );
 
               // Verificar si la adopción se insertó correctamente
@@ -183,6 +241,15 @@ export const administrarAdopcion = async (req, res) => {
       }
 
       const adopcion = adopcionResult[0];
+      const [mascotaResult] = await pool.query("SELECT estado_anterior FROM adopciones WHERE id_adopcion = ?", [id_adopcion]);
+      if (mascotaResult.length === 0) {
+          return res.status(404).json({
+              status: 404,
+              message: 'No se encontró el estado previo de la mascota'
+          });
+      }
+
+      const estadoAnterior = mascotaResult[0].estado_anterior;
       let nuevoEstadoMascota;
 
       // Procesar la acción solicitada
@@ -190,8 +257,10 @@ export const administrarAdopcion = async (req, res) => {
           nuevoEstadoMascota = 'Adoptado';
           await pool.query("UPDATE adopciones SET estado = 'aceptada' WHERE id_adopcion = ?", [id_adopcion]);
       } else if (accion === 'denegar') {
-          nuevoEstadoMascota = 'En Adopcion'; // Estado a recuperar si se deniega la adopción
-          await pool.query("UPDATE adopciones SET estado = 'rechazada' WHERE id_adopcion = ?", [id_adopcion]);
+          nuevoEstadoMascota = estadoAnterior; // Restaurar el estado previo de la mascota
+          // await pool.query("UPDATE adopciones SET estado = 'rechazada' WHERE id_adopcion = ?", [id_adopcion]);
+          await pool.query("DELETE FROM adopciones WHERE id_adopcion = ?", [id_adopcion]);
+
       } else {
           return res.status(400).json({
               status: 400,
@@ -220,106 +289,3 @@ export const administrarAdopcion = async (req, res) => {
   }
 };
 
-// Registrar Adopcion
-export const registrarAdopcion = async (req, res) => {
-  try {
-    const { fk_id_mascota, fk_id_usuario_adoptante, fecha_adopcion, estado } = req.body;
-    const [result] = await pool.query(
-      "INSERT INTO adopciones (fk_id_mascota, fk_id_usuario_adoptante, fecha_adopcion, estado) VALUES (?, ?, ?, ?)",
-      [fk_id_mascota, fk_id_usuario_adoptante, fecha_adopcion, estado]
-    );
-    if (result.affectedRows > 0) {
-      res.status(200).json({
-        status: 200,
-        message: "Adopción registrada",
-      });
-    } else {
-      res.status(403).json({
-        status: 403,
-        message: "No se registró la adopción",
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      status: 500,
-      message: "Error en el servidor " + error.message,
-    });
-  }
-};
-
-// Actualizar Adopcion por ID
-export const actualizarAdopcion = async (req, res) => {
-  try {
-    const { id_adopcion } = req.params;
-    const { fk_id_mascota, fk_id_usuario_adoptante, fecha_adopcion, estado } = req.body;
-    const [result] = await pool.query(
-      "UPDATE adopciones SET fk_id_mascota=?, fk_id_usuario_adoptante=?, fecha_adopcion=?, estado=? WHERE id_adopcion=?",
-      [fk_id_mascota, fk_id_usuario_adoptante, fecha_adopcion, estado, id_adopcion]
-    );
-    if (result.affectedRows > 0) {
-      res.status(200).json({
-        status: 200,
-        message: "Adopción actualizada",
-      });
-    } else {
-      res.status(403).json({
-        status: 403,
-        message: "No se actualizó la adopción",
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      status: 500,
-      message: "Error en el servidor " + error.message,
-    });
-  }
-};
-
-// Eliminar Adopcion por ID
-export const eliminarAdopcion = async (req, res) => {
-  try {
-    const { id_adopcion } = req.params;
-    const [result] = await pool.query("DELETE FROM adopciones WHERE id_adopcion=?", [id_adopcion]);
-    if (result.affectedRows > 0) {
-      res.status(200).json({
-        status: 200,
-        message: "Adopción eliminada",
-      });
-    } else {
-      res.status(403).json({
-        status: 403,
-        message: "No se eliminó la adopción",
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      status: 500,
-      message: "Error en el servidor " + error.message,
-    });
-  }
-};
-
-// Buscar Adopcion por ID
-export const buscarAdopcion = async (req, res) => {
-  try {
-    const { id_adopcion } = req.params;
-    const [result] = await pool.query("SELECT * FROM adopciones WHERE id_adopcion=?", [id_adopcion]);
-    if (result.length > 0) {
-      res.status(200).json({
-        status: 200,
-        message: "Adopción encontrada",
-        data: result[0],
-      });
-    } else {
-      res.status(403).json({
-        status: 403,
-        message: "Adopción no encontrada",
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
-      status: 500,
-      message: "Error en el servidor " + error.message,
-    });
-  }
-};
