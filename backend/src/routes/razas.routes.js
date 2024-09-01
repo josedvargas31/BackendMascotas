@@ -5,7 +5,7 @@ import { validateActualizarRaza, validateCrearRaza } from "../validation/razas.v
 
 const RazasRoutes = Router();
 
-RazasRoutes.get("/listar", /* validarToken */ listarRazas);
+RazasRoutes.get("/listar", validarToken, listarRazas);
 RazasRoutes.post("/registrar", validarToken, validateCrearRaza, registrarRaza);
 RazasRoutes.put("/actualizar/:id_raza", validarToken, validateActualizarRaza, actualizarRaza);
 RazasRoutes.delete("/eliminar/:id_raza", validarToken, eliminarRaza);

@@ -4,8 +4,8 @@ import { validarToken } from "../controllers/validacion.controller.js";
 
 const AdopcionRoutes = Router();
 
-AdopcionRoutes.get("/listar", /* validarToken, */ listarAdopciones);
-AdopcionRoutes.get("/listaraceptadas/:id_usuario", /* validarToken, */ listarMascotasAceptadas);
+AdopcionRoutes.get("/listar", validarToken, listarAdopciones);
+AdopcionRoutes.get("/listaraceptadas/:id_usuario", validarToken, listarMascotasAceptadas);
 AdopcionRoutes.get('/proceso/:fk_id_usuario_adoptante', listarMascotasEnProcesoAdopcion);
 /*  */
 AdopcionRoutes.post('/iniciar/:id_mascota', iniciarAdopcion);

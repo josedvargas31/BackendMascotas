@@ -27,68 +27,31 @@ export const listarAdopciones = async (req, res) => {
         u.telefono AS usuario_telefono,
         a.id_adopcion, 
         a.estado AS estado_adopcion,
-        i.ruta_imagen
+        GROUP_CONCAT(i.ruta_imagen) AS imagenes
       FROM mascotas m
       JOIN adopciones a ON m.id_mascota = a.fk_id_mascota
       JOIN usuarios u ON a.fk_id_usuario_adoptante = u.id_usuario
       JOIN razas r ON m.fk_id_raza = r.id_raza
       LEFT JOIN imagenes i ON m.id_mascota = i.fk_id_mascota
       WHERE m.estado = 'Reservado' AND a.estado = 'proceso de adopcion'
+      GROUP BY m.id_mascota, u.id_usuario, a.id_adopcion;
     `);
-
-    // Agrupar los resultados por mascota
-    const adopciones = result.reduce((acc, item) => {
-      const { id_mascota, nombre_mascota, fecha_nacimiento, descripcion, esterilizado, tamano, peso, fk_id_categoria, fk_id_departamento, fk_id_municipio, sexo, raza, id_usuario, usuario_nombre, usuario_apellido, usuario_correo, usuario_telefono, id_adopcion, estado_adopcion, ruta_imagen } = item;
-
-      // Verificar si la mascota ya está en el acumulador
-      if (!acc[id_mascota]) {
-        acc[id_mascota] = {
-          id_mascota,
-          nombre_mascota,
-          fecha_nacimiento,
-          descripcion,
-          esterilizado,
-          tamano,
-          peso,
-          fk_id_categoria,
-          raza,
-          fk_id_departamento,
-          fk_id_municipio,
-          sexo,
-          usuario: {
-            id_usuario,
-            nombre: usuario_nombre,
-            apellido: usuario_apellido,
-            correo: usuario_correo,
-            telefono: usuario_telefono
-          },
-          id_adopcion,
-          estado_adopcion,
-          imagenes: []
-        };
-      }
-
-      // Agregar la imagen a la mascota correspondiente
-      if (ruta_imagen) {
-        acc[id_mascota].imagenes.push(ruta_imagen);
-      }
-
-      return acc;
-    }, {});
-
-    // Convertir el objeto en un array
-    const adopcionesArray = Object.values(adopciones);
-
-    // Enviar la respuesta
-    res.status(200).json(adopcionesArray);
+    if (result.length > 0) {
+      res.status(200).json(result);
+    } else {
+      res.status(404).json({
+        status: 404,
+        message: "No se encontraron listas de mascotas con usuarios asociados",
+      });
+    }
   } catch (error) {
-    console.error('Error al listar mascotas con usuarios:', error); // Registro del error en la consola del servidor
     res.status(500).json({
       status: 500,
       message: 'Error en el sistema: ' + error.message
     });
   }
 };
+
 
 // Listar mascotas aceptadas por parte del usuario
 export const listarMascotasAceptadas = async (req, res) => {
