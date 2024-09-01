@@ -16,7 +16,14 @@ export const listarMunicipios = async (req, res) => {
 			INNER JOIN 
 				departamentos d ON m.fk_id_departamento = d.id_departamento
 		`);
-		res.status(200).json(result);
+		if (result.length > 0) {
+			res.status(200).json(result);
+		} else {
+			res.status(403).json({
+				status: 403,
+				message: "No hay municipios para listar"
+			})
+		}
 	} catch (error) {
 		res.status(500).json({
 			status: 500,
