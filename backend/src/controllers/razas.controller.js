@@ -1,5 +1,5 @@
 import { pool } from "../database/conexion.js";
-// import { validationResult } from "express-validator";
+import { validationResult } from "express-validator";
 
 // Listar Razas
 export const listarRazas = async (req, res) => {
@@ -8,19 +8,19 @@ export const listarRazas = async (req, res) => {
       SELECT 
           r.id_raza, 
           r.nombre_raza, 
+		  r.fk_id_categoria, 
           c.nombre_categoria
       FROM Razas r
       INNER JOIN Categorias c ON r.fk_id_categoria = c.id_categoria
   `);
-  if (result.length > 0) {
-    res.status(200).json(result);
-  } else {
-    res.status(403).json({
-      status: 403,
-      message: "No hay razas para listar"
-    })
-  }
-
+		if (result.length > 0) {
+			res.status(200).json(result);
+		} else {
+			res.status(403).json({
+				status: 403,
+				message: "No hay razas para listar",
+			});
+		}
 	} catch (error) {
 		res.status(500).json({
 			status: 500,
@@ -32,6 +32,11 @@ export const listarRazas = async (req, res) => {
 // Registrar Raza
 export const registrarRaza = async (req, res) => {
 	try {
+		// Validar los datos
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			return res.status(400).json({ errors: errors.array() });
+		}
 		const { nombre_raza, fk_id_categoria } = req.body;
 		const [result] = await pool.query(
 			"INSERT INTO Razas (nombre_raza, fk_id_categoria) VALUES (?, ?)",
@@ -59,6 +64,11 @@ export const registrarRaza = async (req, res) => {
 // Actualizar Raza por ID
 export const actualizarRaza = async (req, res) => {
 	try {
+		// Validar los datos
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			return res.status(400).json({ errors: errors.array() });
+		}
 		const { id_raza } = req.params;
 		const { nombre_raza, fk_id_categoria } = req.body;
 		const [result] = await pool.query(

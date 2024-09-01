@@ -3,6 +3,27 @@ import { pool } from "../database/conexion.js";
 
 // Listar Vacunas
 export const listarVacunas = async (req, res) => {
+  try {
+    const [result] = await pool.query("SELECT * FROM vacunas");
+    if (result.length > 0) {
+      res.status(200).json(result);
+    } else {
+      res.status(403).json({
+        status: 403,
+        message: "No hay vacunas para listar"
+      })
+    }
+    
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: "Error en el servidor " + error.message,
+    });
+  }
+};
+
+// Listar Vacunas asociadas a la mascota
+export const listarVacunasAsociadaAMascota = async (req, res) => {
   const { id_mascota } = req.params;
   try {
     const [result] = await pool.query("SELECT * FROM vacunas", [id_mascota]);

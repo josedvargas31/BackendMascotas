@@ -8,7 +8,7 @@ const usuarioRoutes = Router();
 
 usuarioRoutes.get("/listar", /* validarToken, */ listarUsuarios);
 usuarioRoutes.get('/perfil/:id_usuario', validarToken, upload.single('img'), uploadImage, Perfil);
-usuarioRoutes.post('/registrar', validarToken, upload.single('img'), uploadImage, registrarUsuario);
+usuarioRoutes.post('/registrar', /* validarToken, */ upload.single('img'), uploadImage, registrarUsuario);
 usuarioRoutes.get('/conteo/rol', obtenerConteoPorEstado);
 usuarioRoutes.put('/actualizar/:id_usuario', validarToken, upload.single('img'), uploadImage,  actualizarUsuario);
 usuarioRoutes.put('/actualizarPerfil/:id_usuario', validarToken, upload.single('img'), uploadImage,  actualizarPerfilUsuario);

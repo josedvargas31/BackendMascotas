@@ -96,10 +96,29 @@ export const listarMascotasAceptadas = async (req, res) => {
     const { id_usuario } = req.params; // Obtener el ID del usuario de los parámetros de la solicitud
 
     const [results] = await pool.query(`
-      SELECT m.*
+      SELECT 
+        m.id_mascota, 
+        m.nombre_mascota, 
+        m.fecha_nacimiento, 
+        m.descripcion, 
+        m.esterilizado, 
+        m.tamano, 
+        m.peso, 
+        m.sexo,
+        m.estado,
+        r.nombre_raza AS raza,
+        d.nombre_departamento AS departamento,
+        mu.nombre_municipio AS municipio,
+        a.fecha_adopcion_aceptada,
+        GROUP_CONCAT(i.ruta_imagen) AS imagenes
       FROM adopciones a
       INNER JOIN mascotas m ON a.fk_id_mascota = m.id_mascota
-      WHERE a.fk_id_usuario_adoptante = ? AND a.estado = 'aceptada';
+      LEFT JOIN imagenes i ON m.id_mascota = i.fk_id_mascota
+      JOIN razas r ON m.fk_id_raza = r.id_raza
+      JOIN departamentos d ON m.fk_id_departamento = d.id_departamento
+      JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
+      WHERE a.fk_id_usuario_adoptante = ? AND a.estado = 'aceptada'
+      GROUP BY m.id_mascota;
     `, [id_usuario]);
 
     if (results.length > 0) {
@@ -118,16 +137,32 @@ export const listarMascotasAceptadas = async (req, res) => {
   }
 };
 
+
 // Listar Mascotas en Proceso de Adopción por Usuario
 export const listarMascotasEnProcesoAdopcion = async (req, res) => {
   try {
     const { fk_id_usuario_adoptante } = req.params; // Obtén el ID del usuario adoptante desde los parámetros de la solicitud
     
     const query = `
-      SELECT a.id_adopcion, m.nombre_mascota, m.sexo, m.fk_id_raza, a.fecha_adopcion, a.estado 
+      SELECT 
+       a.id_adopcion, 
+        m.id_mascota, 
+        m.nombre_mascota, 
+        m.sexo, 
+        r.nombre_raza AS raza,
+        d.nombre_departamento AS departamento,
+        mu.nombre_municipio AS municipio,
+        GROUP_CONCAT(i.ruta_imagen) AS imagenes,
+        a.fecha_adopcion_proceso, 
+        a.estado AS estado_adopcion
       FROM adopciones a 
       JOIN mascotas m ON a.fk_id_mascota = m.id_mascota 
+      LEFT JOIN imagenes i ON m.id_mascota = i.fk_id_mascota
+      JOIN razas r ON m.fk_id_raza = r.id_raza
+      JOIN departamentos d ON m.fk_id_departamento = d.id_departamento
+      JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
       WHERE a.fk_id_usuario_adoptante = ? AND a.estado = 'proceso de adopcion'
+      GROUP BY m.id_mascota;
     `;
 
     const [result] = await pool.query(query, [fk_id_usuario_adoptante]); // Ejecuta la consulta con el ID del usuario
@@ -147,6 +182,7 @@ export const listarMascotasEnProcesoAdopcion = async (req, res) => {
     });
   }
 };
+
 
 // Controlador para iniciar el proceso de adopción
 export const iniciarAdopcion = async (req, res) => {
@@ -180,7 +216,7 @@ export const iniciarAdopcion = async (req, res) => {
           if (estadoMascota === 'En Adopcion' || estadoMascota === 'Urgente') {
               // Iniciar el proceso de adopción y guardar el estado previo
               const [insertAdopcion] = await pool.query(
-                  "INSERT INTO adopciones (fk_id_mascota, fk_id_usuario_adoptante, fecha_adopcion, estado, estado_anterior) VALUES (?, ?, CURDATE(), 'proceso de adopcion', ?)",
+                  "INSERT INTO adopciones (fk_id_mascota, fk_id_usuario_adoptante, fecha_adopcion_proceso, estado, estado_anterior) VALUES (?, ?, CURDATE(), 'proceso de adopcion', ?)",
                   [id_mascota, id_usuario, estadoMascota]
               );
 
@@ -221,71 +257,75 @@ export const iniciarAdopcion = async (req, res) => {
 // Controlador para administrar la adopción (aceptar o denegar)
 export const administrarAdopcion = async (req, res) => {
   try {
-      // Validar los datos de entrada
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-          return res.status(400).json({ errors: errors.array() });
-      }
+    // Validar los datos de entrada
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-      // Obtener parámetros y cuerpo de la solicitud
-      const { id_adopcion } = req.params;
-      const { accion } = req.body;
+    // Obtener parámetros y cuerpo de la solicitud
+    const { id_adopcion } = req.params;
+    const { accion } = req.body;
 
-      // Verificar si la solicitud de adopción existe
-      const [adopcionResult] = await pool.query("SELECT * FROM adopciones WHERE id_adopcion = ?", [id_adopcion]);
-      if (adopcionResult.length === 0) {
-          return res.status(404).json({
-              status: 404,
-              message: 'No se encontró la solicitud de adopción'
-          });
-      }
-
-      const adopcion = adopcionResult[0];
-      const [mascotaResult] = await pool.query("SELECT estado_anterior FROM adopciones WHERE id_adopcion = ?", [id_adopcion]);
-      if (mascotaResult.length === 0) {
-          return res.status(404).json({
-              status: 404,
-              message: 'No se encontró el estado previo de la mascota'
-          });
-      }
-
-      const estadoAnterior = mascotaResult[0].estado_anterior;
-      let nuevoEstadoMascota;
-
-      // Procesar la acción solicitada
-      if (accion === 'aceptar') {
-          nuevoEstadoMascota = 'Adoptado';
-          await pool.query("UPDATE adopciones SET estado = 'aceptada' WHERE id_adopcion = ?", [id_adopcion]);
-      } else if (accion === 'denegar') {
-          nuevoEstadoMascota = estadoAnterior; // Restaurar el estado previo de la mascota
-          // await pool.query("UPDATE adopciones SET estado = 'rechazada' WHERE id_adopcion = ?", [id_adopcion]);
-          await pool.query("DELETE FROM adopciones WHERE id_adopcion = ?", [id_adopcion]);
-
-      } else {
-          return res.status(400).json({
-              status: 400,
-              message: 'Acción no válida'
-          });
-      }
-
-      // Actualizar el estado de la mascota
-      const [updateResult] = await pool.query("UPDATE mascotas SET estado = ? WHERE id_mascota = ?", [nuevoEstadoMascota, adopcion.fk_id_mascota]);
-      if (updateResult.affectedRows > 0) {
-          res.status(200).json({
-              status: 200,
-              message: `La adopción ha sido ${accion === 'aceptar' ? 'aceptada' : 'denegada'}`
-          });
-      } else {
-          res.status(404).json({
-              status: 404,
-              message: 'No se pudo actualizar el estado de la mascota'
-          });
-      }
-  } catch (error) {
-      res.status(500).json({
-          status: 500,
-          message: 'Error en el sistema: ' + error.message
+    // Verificar si la solicitud de adopción existe
+    const [adopcionResult] = await pool.query("SELECT * FROM adopciones WHERE id_adopcion = ?", [id_adopcion]);
+    if (adopcionResult.length === 0) {
+      return res.status(404).json({
+        status: 404,
+        message: 'No se encontró la solicitud de adopción'
       });
+    }
+
+    const adopcion = adopcionResult[0];
+    const [mascotaResult] = await pool.query("SELECT estado_anterior FROM adopciones WHERE id_adopcion = ?", [id_adopcion]);
+    if (mascotaResult.length === 0) {
+      return res.status(404).json({
+        status: 404,
+        message: 'No se encontró el estado previo de la mascota'
+      });
+    }
+
+    const estadoAnterior = mascotaResult[0].estado_anterior;
+    let nuevoEstadoMascota;
+    let fechaAdopcionAceptada = null;
+
+    // Procesar la acción solicitada
+    if (accion === 'aceptar') {
+      nuevoEstadoMascota = 'Adoptado';
+      fechaAdopcionAceptada = new Date(); // Establecer la fecha de aceptación
+
+      await pool.query(
+        "UPDATE adopciones SET estado = 'aceptada', fecha_adopcion_aceptada = ? WHERE id_adopcion = ?", 
+        [fechaAdopcionAceptada, id_adopcion]
+      );
+    } else if (accion === 'denegar') {
+      nuevoEstadoMascota = estadoAnterior; // Restaurar el estado previo de la mascota
+      await pool.query("DELETE FROM adopciones WHERE id_adopcion = ?", [id_adopcion]);
+    } else {
+      return res.status(400).json({
+        status: 400,
+        message: 'Acción no válida'
+      });
+    }
+
+    // Actualizar el estado de la mascota
+    const [updateResult] = await pool.query("UPDATE mascotas SET estado = ? WHERE id_mascota = ?", [nuevoEstadoMascota, adopcion.fk_id_mascota]);
+    if (updateResult.affectedRows > 0) {
+      res.status(200).json({
+        status: 200,
+        message: `La adopción ha sido ${accion === 'aceptar' ? 'aceptada' : 'denegada'}`
+      });
+    } else {
+      res.status(404).json({
+        status: 404,
+        message: 'No se pudo actualizar el estado de la mascota'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: 'Error en el sistema: ' + error.message
+    });
   }
 };
 
