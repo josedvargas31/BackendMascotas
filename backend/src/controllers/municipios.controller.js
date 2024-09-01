@@ -1,10 +1,21 @@
 import { pool } from "../database/conexion.js";
-// import { validationResult } from "express-validator";
+import { validationResult } from "express-validator";
 
 // Listar Municipios
 export const listarMunicipios = async (req, res) => {
 	try {
-		const [result] = await pool.query("SELECT * FROM municipios");
+		const [result] = await pool.query(`
+			SELECT 
+				m.id_municipio, 
+				m.nombre_municipio, 
+				m.codigo_dane, 
+				m.fk_id_departamento, 
+				d.nombre_departamento 
+			FROM 
+				municipios m
+			INNER JOIN 
+				departamentos d ON m.fk_id_departamento = d.id_departamento
+		`);
 		res.status(200).json(result);
 	} catch (error) {
 		res.status(500).json({
@@ -14,9 +25,15 @@ export const listarMunicipios = async (req, res) => {
 	}
 };
 
+
 // Registrar Municipio
 export const registrarMunicipio = async (req, res) => {
 	try {
+		// Validar los datos
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			return res.status(400).json({ errors: errors.array() });
+		}
 		const { nombre_municipio, codigo_dane, fk_id_departamento } = req.body;
 		const [result] = await pool.query(
 			"INSERT INTO municipios ( nombre_municipio, codigo_dane, fk_id_departamento) VALUES (?,?,?)",
@@ -44,6 +61,11 @@ export const registrarMunicipio = async (req, res) => {
 // Actualizar Municipio por ID
 export const actualizarMunicipio = async (req, res) => {
 	try {
+		// Validar los datos
+		const errors = validationResult(req);
+		if (!errors.isEmpty()) {
+			return res.status(400).json({ errors: errors.array() });
+		}
 		const { id_municipio } = req.params;
 		const { nombre_municipio, codigo_dane, fk_id_departamento } = req.body;
 		const [result] = await pool.query(
