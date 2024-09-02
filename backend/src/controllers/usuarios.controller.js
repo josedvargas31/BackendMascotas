@@ -463,7 +463,15 @@ export const listarNotificaciones = async (req, res) => {
 export const manejarNotificacion = async (req, res) => {
     try {
         const { id_notificacion } = req.params;
-        const { estado } = req.body; // Puede ser 'aprobado' o 'denegado'
+        const { estado } = req.body; // Puede ser 'aceptada' o 'rechazada'
+
+        // Validar el estado recibido
+        if (estado !== 'aceptada' && estado !== 'rechazada') {
+            return res.status(400).json({
+                status: 400,
+                message: "Estado inválido. Debe ser 'aceptada' o 'rechazada'."
+            });
+        }
 
         // Actualizar el estado de la notificación
         const [result] = await pool.query("UPDATE notificaciones SET estado = ? WHERE id_notificacion = ?", [estado, id_notificacion]);
@@ -483,9 +491,9 @@ export const manejarNotificacion = async (req, res) => {
 
             // Crear una nueva notificación para el usuario solicitante dependiendo del estado
             let mensajeNotificacion;
-            if (estado === 'aprobado') {
+            if (estado === 'aceptada') {
                 mensajeNotificacion = `El Super Usuario ${superUsuario.nombre} ha aceptado tu solicitud de cambio de rol. Para continuar con el cambio de rol, debes comunicarte al WhatsApp ${superUsuario.telefono} de ${superUsuario.nombre} para confirmar el cambio.`;
-            } else if (estado === 'denegado') {
+            } else if (estado === 'rechazada') {
                 mensajeNotificacion = `Tu solicitud de cambio de rol fue denegada por el Super Usuario ${superUsuario.nombre}.`;
             }
 
@@ -512,6 +520,7 @@ export const manejarNotificacion = async (req, res) => {
         });
     }
 };
+
 //eliminar notificaciones
 export const eliminarNotificacion = async (req, res) => {
     try {

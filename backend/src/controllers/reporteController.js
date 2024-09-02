@@ -93,22 +93,38 @@ const generatePDF = (data) => {
             doc.fontSize(12).text(`Fecha de Generación: ${moment().format("YYYY-MM-DD")}`, { align: "center" });
             doc.moveDown();
             doc.moveDown();
+// Tabla de Datos
+data.forEach((mascota, index) => {
+  const edadEnMeses = calculateAgeInMonths(mascota.fecha_nacimiento);
+  
+  doc.fontSize(12)
+     .fillColor('#333333')
+     .text(`${index + 1}. Nombre: ${mascota.nombre_mascota}`);
+  doc.text(`   Fecha de Nacimiento: ${moment(mascota.fecha_nacimiento).format("YYYY-MM-DD")}`);
+  doc.text(`   Edad: ${edadEnMeses} meses`);
+  doc.text(`   Estado: ${mascota.estado}`);
+  doc.text(`   Esterilizado: ${mascota.esterilizado}`);
+  doc.text(`   Tamaño: ${mascota.tamano}`);
+  doc.text(`   Peso: ${mascota.peso}`);
+  doc.text(`   Categoría: ${mascota.nombre_categoria}`);
+  doc.text(`   Raza: ${mascota.nombre_raza}`);
+  doc.text(`   Ubicación: ${mascota.nombre_departamento}, ${mascota.nombre_municipio}`);
+  doc.text(`   Descripción: ${mascota.descripcion}`);
+  
+  // Información de Vacunas
+  if (mascota.vacunas && mascota.vacunas.length > 0) {
+      doc.text('   Vacunas:');
+      mascota.vacunas.forEach(vacuna => {
+          const fechaVacuna = moment(vacuna.fecha_vacuna).format("YYYY-MM-DD");
+          doc.text(`     - ${vacuna.enfermedad} (${fechaVacuna}): ${vacuna.estado}`);
+      });
+  } else {
+      doc.text('   Vacunas: No tiene vacunas registradas.');
+  }
 
-            // Tabla de Datos
-            data.forEach((mascota, index) => {
-                const edadEnMeses = calculateAgeInMonths(mascota.fecha_nacimiento);
-            
-                doc.fontSize(12)
-                   .fillColor('#333333')
-                   .text(`${index + 1}. Nombre: ${mascota.nombre_mascota}`);
-                doc.text(`   Fecha de Nacimiento: ${moment(mascota.fecha_nacimiento).format("YYYY-MM-DD")}`);
-                doc.text(`   Edad: ${edadEnMeses} meses`); // Agrega la edad en meses
-                doc.text(`   Categoría: ${mascota.nombre_categoria}`);
-                doc.text(`   Raza: ${mascota.nombre_raza}`);
-                doc.text(`   Estado: ${mascota.estado}`);
-                doc.text(`   Descripción: ${mascota.descripcion}`);
-                doc.moveDown();
-            });
+  doc.moveDown();
+});
+
             
 
 // Define la función para dibujar el pie de página
@@ -173,15 +189,23 @@ export const generarReporte = async (req, res) => {
     // Construir la consulta SQL con filtros
     let query = `
       SELECT 
+        m.id_mascota,
         m.nombre_mascota, 
         m.fecha_nacimiento, 
         c.nombre_categoria, 
         r.nombre_raza, 
-        m.estado, 
-        m.descripcion
+        m.estado,
+        m.esterilizado,
+        m.tamano,
+        m.peso,
+        m.descripcion,
+        d.nombre_departamento,  
+        mu.nombre_municipio    
       FROM mascotas m
       INNER JOIN categorias c ON m.fk_id_categoria = c.id_categoria
       INNER JOIN razas r ON m.fk_id_raza = r.id_raza
+      INNER JOIN departamentos d ON m.fk_id_departamento = d.id_departamento
+      INNER JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
       WHERE m.estado IN ('En Adopcion', 'Urgente')
     `;
     let params = [];
@@ -211,17 +235,37 @@ export const generarReporte = async (req, res) => {
       params.push(raza);
     }
 
-    const [result] = await pool.query(query, params);
+    const [mascotas] = await pool.query(query, params);
 
-    if (result.length === 0) {
+    if (mascotas.length === 0) {
       return res.status(404).json({
         status: 404,
         message: "No se encontraron mascotas con los filtros proporcionados",
       });
     }
 
+    // Obtener las vacunas y una imagen para cada mascota
+    for (let mascota of mascotas) {
+      const [vacunas] = await pool.query(`
+        SELECT enfermedad, estado, fecha_vacuna
+        FROM vacunas 
+        WHERE fk_id_mascota = ?
+      `, [mascota.id_mascota]);
+
+      mascota.vacunas = vacunas; // Agregar las vacunas a la mascota
+
+      const [imagenesResult] = await pool.query(`
+        SELECT ruta_imagen 
+        FROM imagenes 
+        WHERE fk_id_mascota = ?
+        LIMIT 1
+      `, [mascota.id_mascota]);
+
+      mascota.imagen = imagenesResult.length > 0 ? imagenesResult[0].ruta_imagen : null;
+    }
+
     // Generar el PDF
-    const pdfBuffer = await generatePDF(result);
+    const pdfBuffer = await generatePDF(mascotas);
 
     // Configurar las cabeceras para la descarga del PDF
     res.setHeader("Content-Disposition", `attachment; filename=Reporte_Mascotas_${Date.now()}.pdf`);
@@ -236,3 +280,6 @@ export const generarReporte = async (req, res) => {
     });
   }
 };
+
+
+
