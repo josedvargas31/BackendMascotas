@@ -18,6 +18,7 @@ import CategoriaRoutes from "./src/routes/categorias.routes.js";
 import DepartamentoRoutes from "./src/routes/departamentos.routes.js";
 import MunicipioRoutes from "./src/routes/municipios.routes.js";
 import rutaValidacion from "./src/routes/validacion.routes.js";
+import Reporterouter from "./src/routes/reporte.routes.js";
 
 const servidor = express();
 
@@ -36,6 +37,7 @@ servidor.use("/mascotas", MascotaRoutes);
 servidor.use("/categorias", CategoriaRoutes);
 servidor.use("/departamentos", DepartamentoRoutes);
 servidor.use("/municipios", MunicipioRoutes);
+servidor.use("/reportes", Reporterouter);
 
 
 // / Middleware para servir archivos estáticos desde la carpeta 'uploads'

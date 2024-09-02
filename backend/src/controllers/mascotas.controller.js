@@ -1,6 +1,7 @@
 import { pool } from "../database/conexion.js";
 import fs from "fs";
 import path from "path";
+import { generatePDF } from '../utils/pdfGenerator.js';
 
 // Listar Mascotas con Imágenes, Detalles Asociados y FKs
 export const listarMascotas = async (req, res) => {
@@ -311,4 +312,69 @@ export const buscarMascota = async (req, res) => {
 			message: "Error en el servidor " + error.message,
 		});
 	}
+};
+
+
+//controlador para la generar la ficha tecnica de la mascota
+export const generarFichaTecnica = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Obtener información básica de la mascota
+        const [mascotaResult] = await pool.query(`
+            SELECT 
+                m.*, 
+                c.nombre_categoria, 
+                r.nombre_raza, 
+                d.nombre_departamento, 
+                mu.nombre_municipio 
+            FROM mascotas m
+            LEFT JOIN categorias c ON m.fk_id_categoria = c.id_categoria
+            LEFT JOIN razas r ON m.fk_id_raza = r.id_raza
+            LEFT JOIN departamentos d ON m.fk_id_departamento = d.id_departamento
+            LEFT JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
+            WHERE m.id_mascota = ?
+        `, [id]);
+
+        if (mascotaResult.length === 0) {
+            return res.status(404).json({ message: "Mascota no encontrada" });
+        }
+
+        const mascota = mascotaResult[0];
+
+        // Obtener vacunas de la mascota
+        const [vacunasResult] = await pool.query(`
+            SELECT * 
+            FROM vacunas 
+            WHERE fk_id_mascota = ?
+        `, [id]);
+
+        mascota.vacunas = vacunasResult;
+
+        // Obtener una imagen de la mascota
+        const [imagenesResult] = await pool.query(`
+            SELECT ruta_imagen 
+            FROM imagenes 
+            WHERE fk_id_mascota = ?
+            LIMIT 1
+        `, [id]);
+
+        if (imagenesResult.length > 0) {
+            mascota.imagen = imagenesResult[0].ruta_imagen;
+        } else {
+            mascota.imagen = null; // O una ruta de imagen predeterminada si es necesario
+        }
+
+        // Generar el PDF con la información de la mascota
+        const pdfBuffer = await generatePDF(mascota);
+
+        // Establecer el encabezado de la respuesta para un archivo PDF
+        res.setHeader('Content-Disposition', `attachment; filename=ficha_tecnica_${mascota.nombre_mascota}.pdf`);
+        res.setHeader('Content-Type', 'application/pdf');
+
+        // Enviar el PDF generado
+        res.send(pdfBuffer);
+    } catch (error) {
+        res.status(500).json({ message: "Error en el servidor: " + error.message });
+    }
 };

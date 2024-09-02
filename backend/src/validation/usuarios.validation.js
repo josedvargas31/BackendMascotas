@@ -3,12 +3,14 @@ import { check } from "express-validator";
 // validación de regsitro de usuario
 export const validateRegistroUsuario = [
 	check(
-		"identificacion",
-		"Identificación es obligatoria y debe contener solo números"
+		"documento_identidad",
+		"La identificación es obligatoria y debe contener exactamente 10 dígitos"
 	)
 		.not()
 		.isEmpty()
+		.isLength({ min: 10, max: 10 })
 		.isNumeric(),
+	
 
 	check(
 		"nombres",
@@ -34,14 +36,15 @@ export const validateRegistroUsuario = [
 		.isEmail()
 		.normalizeEmail(),
 
-	check(
-		"numero_cel",
-		"El número de celular es obligatorio y debe contener solo números, máximo 15 caracteres"
-	)
-		.not()
-		.isEmpty()
-		.isLength({ max: 15 })
-		.isNumeric(),
+		check(
+			"telefono",
+			"El número de celular es obligatorio y debe contener exactamente 10 dígitos"
+		)
+			.not()
+			.isEmpty()
+			.isLength({ min: 10, max: 10 })
+			.isNumeric(),
+		
 
 	check(
 		"password",
