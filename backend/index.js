@@ -18,7 +18,11 @@ import CategoriaRoutes from "./src/routes/categorias.routes.js";
 import DepartamentoRoutes from "./src/routes/departamentos.routes.js";
 import MunicipioRoutes from "./src/routes/municipios.routes.js";
 import rutaValidacion from "./src/routes/validacion.routes.js";
-import Reporterouter from "./src/routes/reporte.routes.js";
+import ReporteAdopcionPDFrouter from "./src/routes/ReporteAdopcionPDF.routes.js";
+import ReporteAdopcionEXCELrouter from "./src/routes/ReporteAdopcionEXCEL.routes.js";
+import ReporteAdoptadoPDFrouter from "./src/routes/ReporteAdoptadoPDF.routes.js";
+import ReporteAdoptadoEXCELrouter from "./src/routes/ReporteAdoptadoEXCEL.routes.js";
+
 
 const servidor = express();
 
@@ -37,7 +41,11 @@ servidor.use("/mascotas", MascotaRoutes);
 servidor.use("/categorias", CategoriaRoutes);
 servidor.use("/departamentos", DepartamentoRoutes);
 servidor.use("/municipios", MunicipioRoutes);
-servidor.use("/reportes", Reporterouter);
+servidor.use("/reportesPDF1", ReporteAdopcionPDFrouter);
+servidor.use("/reportesEXCEL1", ReporteAdopcionEXCELrouter);
+servidor.use("/reportesPDF2", ReporteAdoptadoPDFrouter);
+servidor.use("/reportesEXCEL2", ReporteAdoptadoEXCELrouter);
+
 
 
 // / Middleware para servir archivos estáticos desde la carpeta 'uploads'
