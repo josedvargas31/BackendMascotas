@@ -67,12 +67,12 @@ export const validateRegistroUsuario = [
 export const validateActualizarUsuario = [
 	check(
 		"identificacion",
-		"Identificación es obligatorio y debe contener solo números"
+		"La identificación es obligatoria y debe contener exactamente 10 dígitos"
 	)
-		.optional()
-		.not()
-		.isEmpty()
-		.isNumeric(),
+	.not()
+	.isEmpty()
+	.isLength({ min: 10, max: 10 })
+	.isNumeric(),
 
 	check(
 		"nombres",
@@ -103,19 +103,18 @@ export const validateActualizarUsuario = [
 
 	check(
 		"numero_cel",
-		"El número de celular debe contener solo números, máximo 15 caracteres"
+		"El número de celular es obligatorio y debe contener exactamente 10 dígitos"
 	)
-		.optional()
-		.not()
-		.isEmpty()
-		.isLength({ max: 15 })
-		.isNumeric(),
+	.not()
+	.isEmpty()
+	.isLength({ min: 10, max: 10 })
+	.isNumeric(),
 
-	check("password", "La contraseña debe tener al menos 6 caracteres")
+	check("password", "La contraseña debe tener al menos 8 caracteres")
 		.optional()
 		.not()
 		.isEmpty()
-		.isLength({ min: 6 }),
+		.isLength({ min: 8 }),
 
 	check(
 		"rol",
