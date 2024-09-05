@@ -34,7 +34,7 @@ export const validar = async (req, res) => {
             } else {
                 return res.status(404).json({
                     status: 404,
-                    message: "Contraseña incorrecta",
+                    message: "El correo o la contraseña es incorrecto",
                 });
             }
         } else {

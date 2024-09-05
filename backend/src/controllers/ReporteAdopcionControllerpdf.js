@@ -176,7 +176,7 @@
 
 
   // Controlador para generar el reporte
-  export const generarReporte = async (req, res) => {
+  export const generarReportePDF = async (req, res) => {
     try {
       const { tipo_fecha, fecha_inicio, fecha_fin, categoria, raza } = req.query;
 

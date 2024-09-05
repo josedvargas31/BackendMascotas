@@ -1,7 +1,5 @@
-// controllers/reporteController.js
 import { pool } from "../database/conexion.js";
 import ExcelJS from "exceljs";
-
 
 // Función para generar el archivo Excel
 const generateExcel = (data) => {
@@ -9,6 +7,27 @@ const generateExcel = (data) => {
       try {
           const workbook = new ExcelJS.Workbook();
           const worksheet = workbook.addWorksheet("Mascotas en Adopción");
+
+
+
+          const borderStyle = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+
+          const headerStyle = {
+            font: { bold: true, color: { argb: 'FFFFFF' } },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: '4F81BD' } },
+            alignment: { horizontal: 'center', vertical: 'middle' },
+            border: borderStyle
+          };
+    
+          const cellStyle = {
+            alignment: { vertical: 'middle', wrapText: true },
+            border: borderStyle
+          };
 
           // Definir encabezados de la hoja de cálculo
           worksheet.columns = [
@@ -25,6 +44,11 @@ const generateExcel = (data) => {
               { header: "Municipio", key: "nombre_municipio", width: 20 },
               { header: "Descripción", key: "descripcion", width: 50 },
           ];
+
+          worksheet.getRow(1).eachCell((cell) => {
+            cell.style = headerStyle;
+          });
+    
 
           // Calcular la edad en meses
           const calculateAgeInMonths = (birthdate) => {
@@ -55,6 +79,8 @@ const generateExcel = (data) => {
               });
           });
 
+          
+
           // Convertir el workbook a un buffer
           workbook.xlsx.writeBuffer().then((buffer) => {
               resolve(buffer);
@@ -66,14 +92,18 @@ const generateExcel = (data) => {
 };
 
 
-
-// Controlador para generar el reporte
-export const generarReporte = async (req, res) => {
+// Controlador para generar el reporte en Excel
+export const generarReporteEXCEL = async (req, res) => {
   try {
     const { tipo_fecha, fecha_inicio, fecha_fin, categoria, raza } = req.query;
 
     // Validación de parámetros
-
+    if (!tipo_fecha || (tipo_fecha === "rango" && (!fecha_inicio || !fecha_fin))) {
+      return res.status(400).json({
+        status: 400,
+        message: "Parámetros de fecha insuficientes",
+      });
+    }
 
     // Construir la consulta SQL con filtros
     let query = `
@@ -155,7 +185,7 @@ export const generarReporte = async (req, res) => {
 
     // Generar el EXCEL
     const excelBuffer = await generateExcel(mascotas);
-
+  
         // Configurar las cabeceras para la descarga del archivo Excel
         res.setHeader("Content-Disposition", `attachment; filename=Reporte_Mascotas_${Date.now()}.xlsx`);
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -169,6 +199,3 @@ export const generarReporte = async (req, res) => {
     });
   }
 };
-
-
-

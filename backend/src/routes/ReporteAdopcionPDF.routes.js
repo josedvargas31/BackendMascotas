@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { generarReporte } from "../controllers/ReporteAdopcionControllerpdf.js";
+import { generarReportePDF } from "../controllers/ReporteAdopcionControllerpdf.js";
 
 const ReporteAdopcionPDFrouter = Router();
-ReporteAdopcionPDFrouter.get("/reporte_pdf", generarReporte);
+ReporteAdopcionPDFrouter.get("/reporte_pdf", generarReportePDF);
 
 export default ReporteAdopcionPDFrouter;

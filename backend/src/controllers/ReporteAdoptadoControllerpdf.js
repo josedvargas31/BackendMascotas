@@ -182,7 +182,7 @@ doc.on('pageAdded', () => {
 
 
 // Controlador para generar el reporte
-export const generarReporte = async (req, res) => {
+export const generarReporteAdoptadosPDF = async (req, res) => {
     try {
       const { tipo_fecha, fecha_inicio, fecha_fin, categoria, raza, id_mascota } = req.query;
   

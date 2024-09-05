@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { generarReporte } from "../controllers/ReporteAdopcionControllerexcel.js";
+import { generarReporteEXCEL } from "../controllers/ReporteAdopcionControllerexcel.js";
 
 const ReporteAdopcionEXCELrouter = Router();
-ReporteAdopcionEXCELrouter.get("/reporte_excel", generarReporte);
+ReporteAdopcionEXCELrouter.get("/reporte_excel", generarReporteEXCEL);
 
 export default ReporteAdopcionEXCELrouter;
