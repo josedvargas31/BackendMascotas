@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 01-09-2024 a las 03:20:31
+-- Tiempo de generación: 09-09-2024 a las 03:11:04
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -37,14 +37,6 @@ CREATE TABLE `adopciones` (
   `estado_anterior` enum('En Adopcion','Urgente') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `adopciones`
---
-
-INSERT INTO `adopciones` (`id_adopcion`, `fk_id_mascota`, `fk_id_usuario_adoptante`, `fecha_adopcion_proceso`, `fecha_adopcion_aceptada`, `estado`, `estado_anterior`) VALUES
-(51, 7, 5, '2024-08-31', '2024-08-31', 'aceptada', 'En Adopcion'),
-(54, 13, 5, '2024-08-31', NULL, 'proceso de adopcion', 'Urgente');
-
 -- --------------------------------------------------------
 
 --
@@ -56,13 +48,6 @@ CREATE TABLE `categorias` (
   `nombre_categoria` varchar(50) NOT NULL,
   `estado` enum('activa','inactiva') NOT NULL DEFAULT 'activa'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `categorias`
---
-
-INSERT INTO `categorias` (`id_categoria`, `nombre_categoria`, `estado`) VALUES
-(4, 'esteban full', 'activa');
 
 -- --------------------------------------------------------
 
@@ -76,16 +61,6 @@ CREATE TABLE `departamentos` (
   `codigo_dane` varchar(10) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `departamentos`
---
-
-INSERT INTO `departamentos` (`id_departamento`, `nombre_departamento`, `codigo_dane`) VALUES
-(1, 'Huilaq', '12345'),
-(3, 'Bogota', '1234501'),
-(4, 'qweqsd', '123'),
-(7, 'wadascas', '23124322');
-
 -- --------------------------------------------------------
 
 --
@@ -98,26 +73,6 @@ CREATE TABLE `imagenes` (
   `ruta_imagen` varchar(255) NOT NULL,
   `fecha_registro` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `imagenes`
---
-
-INSERT INTO `imagenes` (`id_imagen`, `fk_id_mascota`, `ruta_imagen`, `fecha_registro`) VALUES
-(87, 7, 'imagenes-1724985519642-178738400.jpg', '2024-08-30 02:38:39'),
-(88, 7, 'imagenes-1724985519644-916967833.jpg', '2024-08-30 02:38:39'),
-(89, 7, 'imagenes-1724985519651-590040244.png', '2024-08-30 02:38:39'),
-(90, 7, 'imagenes-1724985519653-190022385.png', '2024-08-30 02:38:39'),
-(91, 12, 'imagenes-1724985752832-562450668.jpg', '2024-08-30 02:42:32'),
-(92, 12, 'imagenes-1724985752834-66846134.jpg', '2024-08-30 02:42:32'),
-(93, 12, 'imagenes-1724985752837-261804207.png', '2024-08-30 02:42:32'),
-(94, 12, 'imagenes-1724985752837-400331760.png', '2024-08-30 02:42:32'),
-(95, 13, 'imagenes-1724985761177-227396980.jpg', '2024-08-30 02:42:41'),
-(96, 13, 'imagenes-1724985761180-87317263.jpg', '2024-08-30 02:42:41'),
-(97, 14, 'imagenes-1724985767126-315329133.jpg', '2024-08-30 02:42:47'),
-(98, 14, 'imagenes-1724985767129-59169565.jpg', '2024-08-30 02:42:47'),
-(99, 14, 'imagenes-1724985767132-291414032.png', '2024-08-30 02:42:47'),
-(100, 15, 'imagenes-1724985772578-166364722.jpg', '2024-08-30 02:42:52');
 
 -- --------------------------------------------------------
 
@@ -141,17 +96,6 @@ CREATE TABLE `mascotas` (
   `sexo` enum('Macho','Hembra') NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `mascotas`
---
-
-INSERT INTO `mascotas` (`id_mascota`, `nombre_mascota`, `fecha_nacimiento`, `estado`, `descripcion`, `esterilizado`, `tamano`, `peso`, `fk_id_categoria`, `fk_id_raza`, `fk_id_departamento`, `fk_id_municipio`, `sexo`) VALUES
-(7, 'pepe', '2222-11-12', 'Adoptado', 'lulu feliz', 'si', 'Pequeno', 4.00, 4, 3, 1, 1, 'Macho'),
-(12, 'mascota con  cuatro imagenes', '2024-03-22', 'En Adopcion', 'Mascota registarda desde el backend con imagen, y si funciona', 'si', 'Mediano', 3.00, 4, 3, 1, 1, 'Hembra'),
-(13, 'mascota con  cuatro imagenes', '2024-03-22', 'Reservado', 'Mascota registarda desde el backend con imagen, y si funciona', 'si', 'Mediano', 3.00, 4, 3, 1, 1, 'Hembra'),
-(14, 'mascota con  cuatro imagenes', '2024-03-22', 'Urgente', 'Mascota registarda desde el backend con imagen, y si funciona', 'si', 'Mediano', 3.00, 4, 3, 1, 1, 'Hembra'),
-(15, 'mascota con  cuatro imagenes', '2024-03-22', 'Urgente', 'Mascota registarda desde el backend con imagen, y si funciona', 'si', 'Mediano', 3.00, 4, 3, 1, 1, 'Hembra');
-
 -- --------------------------------------------------------
 
 --
@@ -164,16 +108,6 @@ CREATE TABLE `municipios` (
   `codigo_dane` varchar(10) NOT NULL,
   `fk_id_departamento` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `municipios`
---
-
-INSERT INTO `municipios` (`id_municipio`, `nombre_municipio`, `codigo_dane`, `fk_id_departamento`) VALUES
-(1, 'Isnosq', '5432101', 1),
-(3, 'Pitalito', '123450', 1),
-(4, 'Mocoa', '122542', 1),
-(5, 'qwe', '123123', 1);
 
 -- --------------------------------------------------------
 
@@ -190,14 +124,6 @@ CREATE TABLE `notificaciones` (
   `estado` enum('aceptada','rechazada','proceso de adopcion','pendiente') DEFAULT 'pendiente'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `notificaciones`
---
-
-INSERT INTO `notificaciones` (`id_notificacion`, `id_usuario`, `mensaje`, `leido`, `fecha`, `estado`) VALUES
-(2, 7, 'El usuario 9 ha solicitado cambiar su rol de usuario a undefined', 0, '2024-08-24 18:57:36', ''),
-(5, 9, 'El Super Usuario Jose ha aceptado tu solicitud de cambio de rol. Para continuar con el cambio de rol, debes comunicarte al WhatsApp 3188690317 de Jose para confirmar el cambio.', 0, '2024-08-24 20:32:58', 'pendiente');
-
 -- --------------------------------------------------------
 
 --
@@ -209,17 +135,6 @@ CREATE TABLE `razas` (
   `nombre_raza` varchar(50) NOT NULL,
   `fk_id_categoria` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `razas`
---
-
-INSERT INTO `razas` (`id_raza`, `nombre_raza`, `fk_id_categoria`) VALUES
-(3, 'raza web actualizada', 4),
-(4, 'nueva', 4),
-(5, 'qwe', 4),
-(9, 'dario full', 4),
-(10, 'qweloco', 4);
 
 -- --------------------------------------------------------
 
@@ -246,13 +161,7 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`id_usuario`, `nombre`, `apellido`, `direccion`, `telefono`, `correo`, `tipo_documento`, `documento_identidad`, `password`, `img`, `rol`) VALUES
-(5, 'Dario', 'Zamora', 'loco', '3158716879', 'dajo59416@gmail.com', 'cedula', '55065264', '$2b$10$eKsLg1yJd2QLuRomNG8PrOF7QLXFv1L7qoTjjp7oif8WqJ5g.879K', 'img-1723496583726-780509290.png', 'usuario'),
-(7, 'Jose', 'Vargas', 'loco', '3188690317', 'dajozavargas@gmail.com', 'cedula', '1077848366', '$2b$10$rvI0wYQLni8k4qZC6DCJ2emaQhcNk8fIsBtW8dgUGpKjk7RfdvAT2', 'img-1724804730945-519039254.jpeg', 'superusuario'),
-(8, 'qwe', 'qwe', 'locoq', '1231', 'qwe@gmail.com', 'cedula', '123123', '$2b$10$CfnIn.Z.LlH3cV9kd1Fh1eYnMgHyho/aqKNnlSRNUQSH1L54eCvRO', 'img-1724116616335-283913486.png', 'administrador'),
-(9, 'zorro lololololo', 'zorro', 'loco', '124675846356345', 'zorro@gmail.com', 'tarjeta de extranjeria', '23465678674', '$2b$10$HlLlBPkg7IdbgpGHw0FmfeLSpGjo4Twi6OlsxAeJX5Kv2/ptQ10.W', 'img-1723513152450-8202856.jpeg', 'usuario'),
-(10, 'lolo', 'loloq', 'lolo@gmail.com', '12353648456', 'lolo@gmail.com', 'cedula', '1341489713', '$2b$10$eVKK0f7TMD4HtqHB7EcAX.gT/p87gEVcwDS/zoLvPUBNQ3fChIXNu', 'img-1723687878413-330559835.png', 'usuario'),
-(11, 'qwe', 'qwe', 'qwe', '213234364564', 'jose@gmail.com', 'tarjeta', '2342353523', '$2b$10$mF./B2PwzkKI6QD5P5GMce55KyMcwW9/X0kdOZqR5vXiuybWQ8VDu', 'img-1724113918049-554800424.jpeg', 'usuario'),
-(12, ' asd asd', 'qwe', ' dvdvv sdvw ', '213123123', 'da@gmail.com', 'cedula', '1231231243', '$2b$10$tsk6gvgMSm4YQjKtWsngueOju/MKfnrt/vViFvIF.5riaosUihu3C', 'img-1725147425412-617538646.png', 'usuario');
+(1, 'Jose', 'Vargas', 'loco', '3188690317', 'dajozavargas@gmail.com', 'cedula', '1077848366', '$2b$10$rvI0wYQLni8k4qZC6DCJ2emaQhcNk8fIsBtW8dgUGpKjk7RfdvAT2', 'img-1725844230643-770296986.png', 'superusuario');
 
 -- --------------------------------------------------------
 
@@ -267,13 +176,6 @@ CREATE TABLE `vacunas` (
   `enfermedad` varchar(100) NOT NULL,
   `estado` enum('Completa','Incompleta','En proceso','no se') DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `vacunas`
---
-
-INSERT INTO `vacunas` (`id_vacuna`, `fk_id_mascota`, `fecha_vacuna`, `enfermedad`, `estado`) VALUES
-(4, 7, '2024-08-08', 'loco', 'Completa');
 
 --
 -- Índices para tablas volcadas
@@ -362,61 +264,61 @@ ALTER TABLE `vacunas`
 -- AUTO_INCREMENT de la tabla `adopciones`
 --
 ALTER TABLE `adopciones`
-  MODIFY `id_adopcion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+  MODIFY `id_adopcion` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `categorias`
 --
 ALTER TABLE `categorias`
-  MODIFY `id_categoria` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_categoria` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `departamentos`
 --
 ALTER TABLE `departamentos`
-  MODIFY `id_departamento` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id_departamento` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `imagenes`
 --
 ALTER TABLE `imagenes`
-  MODIFY `id_imagen` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
+  MODIFY `id_imagen` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `mascotas`
 --
 ALTER TABLE `mascotas`
-  MODIFY `id_mascota` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id_mascota` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `municipios`
 --
 ALTER TABLE `municipios`
-  MODIFY `id_municipio` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_municipio` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `notificaciones`
 --
 ALTER TABLE `notificaciones`
-  MODIFY `id_notificacion` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_notificacion` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `razas`
 --
 ALTER TABLE `razas`
-  MODIFY `id_raza` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id_raza` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT de la tabla `vacunas`
 --
 ALTER TABLE `vacunas`
-  MODIFY `id_vacuna` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_vacuna` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Restricciones para tablas volcadas
