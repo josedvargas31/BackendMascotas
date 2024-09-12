@@ -10,8 +10,8 @@ export const listarRazas = async (req, res) => {
           r.nombre_raza, 
 		  r.fk_id_categoria, 
           c.nombre_categoria
-      FROM Razas r
-      INNER JOIN Categorias c ON r.fk_id_categoria = c.id_categoria
+      FROM razas r
+      INNER JOIN categorias c ON r.fk_id_categoria = c.id_categoria
   `);
 		if (result.length > 0) {
 			res.status(200).json(result);
@@ -39,7 +39,7 @@ export const registrarRaza = async (req, res) => {
 		}
 		const { nombre_raza, fk_id_categoria } = req.body;
 		const [result] = await pool.query(
-			"INSERT INTO Razas (nombre_raza, fk_id_categoria) VALUES (?, ?)",
+			"INSERT INTO razas (nombre_raza, fk_id_categoria) VALUES (?, ?)",
 			[nombre_raza, fk_id_categoria]
 		);
 		if (result.affectedRows > 0) {
@@ -72,7 +72,7 @@ export const actualizarRaza = async (req, res) => {
 		const { id_raza } = req.params;
 		const { nombre_raza, fk_id_categoria } = req.body;
 		const [result] = await pool.query(
-			"UPDATE Razas SET nombre_raza=?, fk_id_categoria=? WHERE id_raza=?",
+			"UPDATE razas SET nombre_raza=?, fk_id_categoria=? WHERE id_raza=?",
 			[nombre_raza, fk_id_categoria, id_raza]
 		);
 		if (result.affectedRows > 0) {
@@ -98,7 +98,7 @@ export const actualizarRaza = async (req, res) => {
 export const eliminarRaza = async (req, res) => {
 	try {
 		const { id_raza } = req.params;
-		const [result] = await pool.query("DELETE FROM Razas WHERE id_raza=?", [
+		const [result] = await pool.query("DELETE FROM razas WHERE id_raza=?", [
 			id_raza,
 		]);
 		if (result.affectedRows > 0) {
@@ -124,7 +124,7 @@ export const eliminarRaza = async (req, res) => {
 export const buscarRaza = async (req, res) => {
 	try {
 		const { id_raza } = req.params;
-		const [result] = await pool.query("SELECT * FROM Razas WHERE id_raza=?", [
+		const [result] = await pool.query("SELECT * FROM razas WHERE id_raza=?", [
 			id_raza,
 		]);
 		if (result.length > 0) {

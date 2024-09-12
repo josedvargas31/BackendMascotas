@@ -4,7 +4,7 @@ import { listarVacunas, registrarVacuna, actualizarVacuna, eliminarVacuna, busca
 const vacunaRoutes = Router();
 
 vacunaRoutes.get("/listar", listarVacunas);
-vacunaRoutes.get("/listar/:id_mascota", listarVacunasAsociadaAMascota);
+vacunaRoutes.get("/listarVacunasAsociadaAMascota/:id_mascota", listarVacunasAsociadaAMascota);
 vacunaRoutes.post("/registrar", registrarVacuna);
 vacunaRoutes.put("/actualizar/:id_vacuna", actualizarVacuna);
 vacunaRoutes.delete("/eliminar/:id_vacuna", eliminarVacuna);
