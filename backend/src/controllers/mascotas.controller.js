@@ -52,7 +52,6 @@ export const listarMascotas = async (req, res) => {
 		});
 	}
 };
-
 // Registrar Mascota
 export const registrarMascota = async (req, res) => {
 	try {
