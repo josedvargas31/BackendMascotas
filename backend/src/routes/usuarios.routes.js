@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { listarUsuarios, registrarUsuario, actualizarUsuario, eliminarUsuario, verificarExistencia, obtenerConteoPorEstado, solicitarCambioRol, listarNotificaciones, manejarNotificacion, eliminarNotificacion, Perfil, actualizarPerfilUsuario } from "../controllers/usuarios.controller.js";
+import { listarUsuarios, solicitarResetPassword, resetPassword, registrarUsuario, actualizarUsuario, eliminarUsuario, verificarExistencia, obtenerConteoPorEstado, solicitarCambioRol, listarNotificaciones, manejarNotificacion, eliminarNotificacion, Perfil, actualizarPerfilUsuario } from "../controllers/usuarios.controller.js";
 // valida por token
 import { validarToken } from "../controllers/validacion.controller.js";
 import upload from '../config/multer.config.js'; 
@@ -18,5 +18,9 @@ usuarioRoutes.post('/solicitarCambioRol/:id_usuario', validarToken, solicitarCam
 usuarioRoutes.get('/listarNoti/:id_usuario', validarToken, listarNotificaciones);
 usuarioRoutes.put('/manejar/:id_notificacion', validarToken, manejarNotificacion);
 usuarioRoutes.delete('/eliminarNotificacion/:id_notificacion', validarToken, eliminarNotificacion);
+
+// Rutas de recuperación de contraseña
+usuarioRoutes.post('/solicitar-reset-password', solicitarResetPassword); // Solicitar recuperación de contraseña
+usuarioRoutes.post('/reset-password', resetPassword); // Restablecer contraseña con el token
 
 export default usuarioRoutes;
