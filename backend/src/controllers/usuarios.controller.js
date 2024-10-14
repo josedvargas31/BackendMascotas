@@ -2,6 +2,8 @@ import { pool } from "../database/conexion.js";
 import fs from "fs";
 import path from "path";
 import bcrypt from "bcrypt";
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 // import { validationResult } from "express-validator";
 
 // listar usuarios
@@ -547,3 +549,48 @@ export const eliminarNotificacion = async (req, res) => {
         });
     }
 };
+
+//recuperacion de contraseña
+
+export const solicitarResetPassword = async (req, res) => {
+    try {
+        const { correo } = req.body;
+
+        // Verificar si el correo está registrado
+        const [usuario] = await pool.query("SELECT * FROM usuarios WHERE correo = ?", [correo]);
+
+        if (usuario.length === 0) {
+            return res.status(404).json({ message: "Correo no encontrado" });
+        }
+
+        // Si el correo existe, simplemente devuelves un mensaje de éxito
+        res.status(200).json({ message: "Correo verificado, por favor ingresa la nueva contraseña." });
+    } catch (error) {
+        res.status(500).json({ message: "Error en el servidor: " + error.message });
+    }
+};
+
+
+export const updatePassword = async (req, res) => {
+    try {
+        const { correo, password } = req.body;
+
+        // Verificar si el correo está registrado
+        const [usuario] = await pool.query("SELECT * FROM usuarios WHERE correo = ?", [correo]);
+
+        if (usuario.length === 0) {
+            return res.status(404).json({ message: "Correo no encontrado" });
+        }
+
+        // Cifrar la nueva contraseña
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Actualizar la contraseña del usuario
+        await pool.query("UPDATE usuarios SET password = ? WHERE correo = ?", [hashedPassword, correo]);
+
+        res.status(200).json({ message: "Contraseña actualizada exitosamente" });
+    } catch (error) {
+        res.status(500).json({ message: "Error en el servidor: " + error.message });
+    }
+};  
+

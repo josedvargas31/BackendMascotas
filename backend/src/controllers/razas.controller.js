@@ -29,6 +29,28 @@ export const listarRazas = async (req, res) => {
 	}
 };
 
+// Lista las razas asociados a un departamento
+export const listarRazasPorCategoria = async (req, res) => {
+	const { categoriaId } = req.params;
+
+	try {
+		const [razas] = await pool.query(
+			"SELECT * FROM razas WHERE fk_id_categoria = ?",
+			[categoriaId]
+		);
+		if (razas.length > 0) {
+			res.status(200).json(razas);
+		} else {
+			res.status(404).json({
+				status: 404,
+				message: "No hay razas asociados a una categoria"
+			})
+		}
+	} catch (error) {
+		res.status(500).json({ error: "Error al obtener razas." });
+	}
+};
+
 // Registrar Raza
 export const registrarRaza = async (req, res) => {
 	try {
@@ -96,29 +118,30 @@ export const actualizarRaza = async (req, res) => {
 
 // Eliminar Raza por ID
 export const eliminarRaza = async (req, res) => {
-	try {
-		const { id_raza } = req.params;
-		const [result] = await pool.query("DELETE FROM razas WHERE id_raza=?", [
-			id_raza,
-		]);
-		if (result.affectedRows > 0) {
-			res.status(200).json({
-				status: 200,
-				message: "Raza eliminada",
-			});
-		} else {
-			res.status(403).json({
-				status: 403,
-				message: "No se eliminó la raza",
-			});
-		}
-	} catch (error) {
-		res.status(500).json({
-			status: 500,
-			message: "Error en el servidor " + error.message,
-		});
-	}
+    const { id_raza } = req.params;
+
+    try {
+        // Verificar si la raza está siendo utilizada en otra tabla (por ejemplo, en la tabla de mascotas)
+        const [rows] = await pool.query(
+            `SELECT COUNT(*) AS count FROM mascotas WHERE fk_id_raza = ?`, 
+            [id_raza]
+        );
+
+        if (rows[0].count > 0) {
+            return res.status(400).json({
+                message: "La raza no puede ser eliminada porque hay mascotas registradas en él."
+            });
+        }
+
+        // Si no está siendo utilizada, proceder con la eliminación
+        await pool.query("DELETE FROM razas WHERE id_raza = ?", [id_raza]);
+        res.status(200).json({ message: "Raza eliminada correctamente." });
+
+    } catch (error) {
+        res.status(500).json({ message: "Error en el servidor." });
+    }
 };
+
 
 // Buscar Raza por ID
 export const buscarRaza = async (req, res) => {

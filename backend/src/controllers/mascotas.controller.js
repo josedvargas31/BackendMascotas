@@ -7,7 +7,8 @@ import { generatePDF } from '../utils/pdfGenerator.js';
 // Listar Mascotas con Imágenes, Detalles Asociados y FKs
 export const listarMascotas = async (req, res) => {
 	try {
-		// Consulta SQL para obtener mascotas, sus imágenes y detalles asociados, incluyendo las FK
+		// Consulta SQL para obtener mascotas, sus imágenes y detalles asociados
+		// Aseguramos que las relaciones fk_id_raza -> fk_id_categoria y fk_id_municipio -> fk_id_departamento sean correctas
 		const [result] = await pool.query(`
             SELECT 
                 m.id_mascota,
@@ -18,24 +19,37 @@ export const listarMascotas = async (req, res) => {
                 m.esterilizado,
                 m.tamano,
                 m.peso,
-                m.fk_id_categoria,
+                
+                -- Obtener categoría a través de la raza
+                r.fk_id_categoria,
                 c.nombre_categoria AS categoria,
+
+                -- Datos de la raza
                 m.fk_id_raza,
                 r.nombre_raza AS raza,
-                m.fk_id_departamento,
+
+                -- Obtener departamento a través del municipio
+                mu.fk_id_departamento,
                 d.nombre_departamento AS departamento,
+
+                -- Datos del municipio
                 m.fk_id_municipio,
                 mu.nombre_municipio AS municipio,
+
                 m.sexo,
+                
+                -- Concatenar imágenes asociadas
                 GROUP_CONCAT(i.ruta_imagen) AS imagenes
             FROM mascotas m
             LEFT JOIN imagenes i ON m.id_mascota = i.fk_id_mascota
-            LEFT JOIN categorias c ON m.fk_id_categoria = c.id_categoria
             LEFT JOIN razas r ON m.fk_id_raza = r.id_raza
-            LEFT JOIN departamentos d ON m.fk_id_departamento = d.id_departamento
+            LEFT JOIN categorias c ON r.fk_id_categoria = c.id_categoria -- Relación raza -> categoría
             LEFT JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
+            LEFT JOIN departamentos d ON mu.fk_id_departamento = d.id_departamento -- Relación municipio -> departamento
             GROUP BY m.id_mascota;
         `);
+
+		// Verificar si hay resultados y responder
 		if (result.length > 0) {
 			res.status(200).json(result);
 		} else {
@@ -44,7 +58,6 @@ export const listarMascotas = async (req, res) => {
 				message: "No hay mascotas para listar",
 			});
 		}
-		// Enviar la respuesta
 	} catch (error) {
 		res.status(500).json({
 			status: 500,
@@ -52,6 +65,7 @@ export const listarMascotas = async (req, res) => {
 		});
 	}
 };
+
 // Registrar Mascota
 export const registrarMascota = async (req, res) => {
 	try {
@@ -322,27 +336,37 @@ export const buscarMascota = async (req, res) => {
 };
 
 
-//controlador para la generar la ficha tecnica de la mascota
+// Controlador para generar la ficha técnica de la mascota
 export const generarFichaTecnica = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Obtener información básica de la mascota
+        // Obtener información básica de la mascota, asegurando las relaciones raza -> categoría y municipio -> departamento
         const [mascotaResult] = await pool.query(`
             SELECT 
                 m.*, 
+                -- Obtener la categoría a través de la raza
+                r.fk_id_categoria,
                 c.nombre_categoria, 
+                
+                -- Información de la raza
                 r.nombre_raza, 
+
+                -- Obtener el departamento a través del municipio
+                mu.fk_id_departamento,
                 d.nombre_departamento, 
+
+                -- Información del municipio
                 mu.nombre_municipio 
             FROM mascotas m
-            LEFT JOIN categorias c ON m.fk_id_categoria = c.id_categoria
             LEFT JOIN razas r ON m.fk_id_raza = r.id_raza
-            LEFT JOIN departamentos d ON m.fk_id_departamento = d.id_departamento
+            LEFT JOIN categorias c ON r.fk_id_categoria = c.id_categoria -- Relación raza -> categoría
             LEFT JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
+            LEFT JOIN departamentos d ON mu.fk_id_departamento = d.id_departamento -- Relación municipio -> departamento
             WHERE m.id_mascota = ?
         `, [id]);
 
+        // Verificar si la mascota existe
         if (mascotaResult.length === 0) {
             return res.status(404).json({ message: "Mascota no encontrada" });
         }
@@ -366,11 +390,8 @@ export const generarFichaTecnica = async (req, res) => {
             LIMIT 1
         `, [id]);
 
-        if (imagenesResult.length > 0) {
-            mascota.imagen = imagenesResult[0].ruta_imagen;
-        } else {
-            mascota.imagen = null; // O una ruta de imagen predeterminada si es necesario
-        }
+        // Asignar la imagen si existe, de lo contrario dejarla como null
+        mascota.imagen = imagenesResult.length > 0 ? imagenesResult[0].ruta_imagen : null;
 
         // Generar el PDF con la información de la mascota
         const pdfBuffer = await generatePDF(mascota);
@@ -382,6 +403,7 @@ export const generarFichaTecnica = async (req, res) => {
         // Enviar el PDF generado
         res.send(pdfBuffer);
     } catch (error) {
+        console.error("Error en el controlador generarFichaTecnica:", error); // Log error details
         res.status(500).json({ message: "Error en el servidor: " + error.message });
     }
 };
