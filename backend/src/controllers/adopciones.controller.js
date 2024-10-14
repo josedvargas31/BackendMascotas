@@ -3,9 +3,10 @@ import { validationResult } from "express-validator";
 
 // Listar Adopciones
 // Controlador para listar mascotas con usuarios asociados en proceso de adopción
+// Listar Adopciones con detalles asociados y FKs
 export const listarAdopciones = async (req, res) => {
 	try {
-		// Ejecutar la consulta SQL
+		// Ejecutar la consulta SQL ajustada para incluir las relaciones correctas
 		const [result] = await pool.query(`
       SELECT 
         m.id_mascota, 
@@ -15,27 +16,50 @@ export const listarAdopciones = async (req, res) => {
         m.esterilizado, 
         m.tamano, 
         m.peso, 
-        m.fk_id_categoria, 
+        
+        -- Obtener categoría a través de la raza
+        r.fk_id_categoria,
+        c.nombre_categoria AS categoria,
+        
+        -- Datos de la raza
         r.nombre_raza AS raza,
-        m.fk_id_departamento, 
-        m.fk_id_municipio, 
+        
+        -- Obtener departamento a través del municipio
+        mu.fk_id_departamento,
+        d.nombre_departamento AS departamento,
+
+        -- Datos del municipio
+        mu.nombre_municipio AS municipio,
+
+        -- Información adicional de la mascota
         m.sexo,
+
+        -- Datos del usuario adoptante
         u.id_usuario, 
         u.nombre AS usuario_nombre, 
         u.apellido AS usuario_apellido, 
         u.correo AS usuario_correo,
         u.telefono AS usuario_telefono,
+
+        -- Datos de la adopción
         a.id_adopcion, 
         a.estado AS estado_adopcion,
+
+        -- Concatenar las imágenes asociadas
         GROUP_CONCAT(i.ruta_imagen) AS imagenes
       FROM mascotas m
       JOIN adopciones a ON m.id_mascota = a.fk_id_mascota
       JOIN usuarios u ON a.fk_id_usuario_adoptante = u.id_usuario
       JOIN razas r ON m.fk_id_raza = r.id_raza
+      LEFT JOIN categorias c ON r.fk_id_categoria = c.id_categoria -- Relación raza -> categoría
+      LEFT JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
+      LEFT JOIN departamentos d ON mu.fk_id_departamento = d.id_departamento -- Relación municipio -> departamento
       LEFT JOIN imagenes i ON m.id_mascota = i.fk_id_mascota
       WHERE m.estado = 'Reservado' AND a.estado = 'proceso de adopcion'
       GROUP BY m.id_mascota, u.id_usuario, a.id_adopcion;
     `);
+
+		// Verificar si hay resultados
 		if (result.length > 0) {
 			res.status(200).json(result);
 		} else {
@@ -52,41 +76,75 @@ export const listarAdopciones = async (req, res) => {
 	}
 };
 
+
 // Listar mascotas aceptadas por parte del usuario
 export const listarMascotasAceptadas = async (req, res) => {
 	try {
 		const { id_usuario } = req.params; // Obtener el ID del usuario de los parámetros de la solicitud
 
-		const [results] = await pool.query(
-			`
+		const query = `
       SELECT 
         m.id_mascota, 
         m.nombre_mascota, 
         m.fecha_nacimiento, 
         m.descripcion, 
         m.esterilizado, 
+        -- Obtener categoría a través de la raza
+        r.fk_id_categoria,
         c.nombre_categoria AS categoria,
+        
         m.tamano, 
         m.peso, 
         m.sexo,
         m.estado,
+
+        -- Datos de la raza
         r.nombre_raza AS raza,
+        
+        -- Obtener departamento a través del municipio
+        mu.fk_id_departamento,
         d.nombre_departamento AS departamento,
+
+        -- Datos del municipio
         mu.nombre_municipio AS municipio,
+
         a.fecha_adopcion_aceptada,
+        
+        -- Concatenar imágenes asociadas
         GROUP_CONCAT(i.ruta_imagen) AS imagenes
       FROM adopciones a
       INNER JOIN mascotas m ON a.fk_id_mascota = m.id_mascota
       LEFT JOIN imagenes i ON m.id_mascota = i.fk_id_mascota
+      
+      -- Relación raza -> categoría
       JOIN razas r ON m.fk_id_raza = r.id_raza
-      LEFT JOIN categorias c ON m.fk_id_categoria = c.id_categoria
-      JOIN departamentos d ON m.fk_id_departamento = d.id_departamento
+      LEFT JOIN categorias c ON r.fk_id_categoria = c.id_categoria
+      
+      -- Relación municipio -> departamento
       JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
+      JOIN departamentos d ON mu.fk_id_departamento = d.id_departamento
+
+      -- Filtro para obtener solo las adopciones aceptadas por el usuario
       WHERE a.fk_id_usuario_adoptante = ? AND a.estado = 'aceptada'
-      GROUP BY m.id_mascota;
-    `,
-			[id_usuario]
-		);
+      
+      GROUP BY 
+        m.id_mascota, 
+        m.nombre_mascota, 
+        m.fecha_nacimiento, 
+        m.descripcion, 
+        m.esterilizado, 
+        c.nombre_categoria,
+        m.tamano, 
+        m.peso, 
+        m.sexo,
+        m.estado,
+        r.nombre_raza,
+        d.nombre_departamento,
+        mu.nombre_municipio,
+        a.fecha_adopcion_aceptada;
+    `;
+
+		const [results] = await pool.query(query, [id_usuario]);
 
 		if (results.length > 0) {
 			res.status(200).json(results);
@@ -109,43 +167,76 @@ export const listarMascotasEnProcesoAdopcion = async (req, res) => {
 	try {
 		const { fk_id_usuario_adoptante } = req.params; // Obtén el ID del usuario adoptante desde los parámetros de la solicitud
 
+		// Consulta SQL ajustada para relaciones raza -> categoría y municipio -> departamento
 		const query = `
-      SELECT 
-       a.id_adopcion, 
-        m.id_mascota, 
-        m.nombre_mascota, 
-        m.sexo, 
-        m.peso,
-        m.fecha_nacimiento, 
-        m.tamano,
-        m.esterilizado, 
-        c.nombre_categoria AS categoria,
-        r.nombre_raza AS raza,
-        d.nombre_departamento AS departamento,
-        mu.nombre_municipio AS municipio,
-        GROUP_CONCAT(i.ruta_imagen) AS imagenes,
-        a.fecha_adopcion_proceso, 
-        a.estado AS estado_adopcion
-      FROM adopciones a 
-      JOIN mascotas m ON a.fk_id_mascota = m.id_mascota 
-      LEFT JOIN imagenes i ON m.id_mascota = i.fk_id_mascota
-      LEFT JOIN categorias c ON m.fk_id_categoria = c.id_categoria
-      JOIN razas r ON m.fk_id_raza = r.id_raza
-      JOIN departamentos d ON m.fk_id_departamento = d.id_departamento
-      JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
-      WHERE a.fk_id_usuario_adoptante = ? AND a.estado = 'proceso de adopcion'
-      GROUP BY m.id_mascota;
-    `;
+		SELECT 
+			a.id_adopcion, 
+			m.id_mascota, 
+			m.nombre_mascota, 
+			m.sexo, 
+			m.peso,
+			m.fecha_nacimiento, 
+			m.tamano,
+			m.estado,
+			m.esterilizado, 
+			
+			-- Obtener categoría a través de la raza
+			r.fk_id_categoria,
+			c.nombre_categoria AS categoria,
+			
+			-- Datos de la raza
+			r.nombre_raza AS raza,
+			
+			-- Obtener departamento a través del municipio
+			mu.fk_id_departamento,
+			d.nombre_departamento AS departamento,
+			
+			-- Datos del municipio
+			mu.nombre_municipio AS municipio,
+			
+			-- Concatenar imágenes asociadas
+			GROUP_CONCAT(i.ruta_imagen) AS imagenes,
+			
+			-- Detalles de la adopción
+			a.fecha_adopcion_proceso, 
+			a.estado AS proceso_de_adopcion -- Corregido el alias para no contener espacios
+		FROM adopciones a
+		JOIN mascotas m ON a.fk_id_mascota = m.id_mascota
+		LEFT JOIN imagenes i ON m.id_mascota = i.fk_id_mascota
+		JOIN razas r ON m.fk_id_raza = r.id_raza
+		LEFT JOIN categorias c ON r.fk_id_categoria = c.id_categoria -- Relación raza -> categoría
+		JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
+		LEFT JOIN departamentos d ON mu.fk_id_departamento = d.id_departamento -- Relación municipio -> departamento
+		WHERE a.fk_id_usuario_adoptante = ? 
+		AND a.estado = 'proceso de adopcion'
+		GROUP BY 
+			a.id_adopcion, 
+			m.id_mascota, 
+			m.nombre_mascota, 
+			m.sexo, 
+			m.peso,
+			m.fecha_nacimiento, 
+			m.tamano,
+			m.estado,
+			m.esterilizado, 
+			c.nombre_categoria,
+			r.nombre_raza,
+			d.nombre_departamento,
+			mu.nombre_municipio,
+			a.fecha_adopcion_proceso, 
+			a.estado
+		`;
 
-		const [result] = await pool.query(query, [fk_id_usuario_adoptante]); // Ejecuta la consulta con el ID del usuario
+		// Ejecuta la consulta con el ID del usuario adoptante
+		const [result] = await pool.query(query, [fk_id_usuario_adoptante]);
 
+		// Verificar si hay resultados y responder
 		if (result.length > 0) {
 			res.status(200).json(result);
 		} else {
 			res.status(404).json({
 				status: 404,
-				message:
-					"No se encontraron mascotas en proceso de adopción para este usuario",
+				message: "No se encontraron mascotas en proceso de adopción para este usuario",
 			});
 		}
 	} catch (error) {

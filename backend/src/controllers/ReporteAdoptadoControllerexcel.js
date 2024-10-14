@@ -107,40 +107,47 @@ export const generarReporteAdoptadosEXCEL = async (req, res) => {
       });
     }
 
-    // Construir la consulta SQL con filtros
+          // Validación: Si se selecciona una categoría, también se debe seleccionar una raza
+          if (categoria && !raza) {
+            return res.status(400).json({
+              status: 400,
+              message: "Debe seleccionar una raza si ha seleccionado una categoría.",
+            });
+          }
+
     let query = `
-SELECT 
-  m.id_mascota,
-  m.nombre_mascota, 
-  m.fecha_nacimiento, 
-  c.nombre_categoria, 
-  r.nombre_raza, 
-  m.estado,
-  m.esterilizado,
-  m.tamano,
-  m.peso,
-  m.descripcion,
-  d.nombre_departamento,  
-  mu.nombre_municipio,
-  u.nombre AS nombre_usuario_adoptante, 
-  u.apellido AS apellido_usuario_adoptante
-FROM 
-  mascotas m
-INNER JOIN 
-  categorias c ON m.fk_id_categoria = c.id_categoria
-INNER JOIN 
-  razas r ON m.fk_id_raza = r.id_raza
-INNER JOIN 
-  departamentos d ON m.fk_id_departamento = d.id_departamento
-INNER JOIN 
-  municipios mu ON m.fk_id_municipio = mu.id_municipio
-LEFT JOIN 
-  adopciones a ON m.id_mascota = a.fk_id_mascota
-LEFT JOIN 
-  usuarios u ON a.fk_id_usuario_adoptante = u.id_usuario
-WHERE 
-  m.estado = 'Adoptado'
-  `;
+    SELECT 
+        m.id_mascota,
+        m.nombre_mascota, 
+        m.fecha_nacimiento, 
+        r.nombre_raza,
+        c.nombre_categoria, 
+        m.estado,
+        m.esterilizado,
+        m.tamano,
+        m.peso,
+        m.descripcion, 
+        mu.nombre_municipio,
+        d.nombre_departamento,
+        u.nombre AS nombre_usuario_adoptante, 
+        u.apellido AS apellido_usuario_adoptante
+    FROM 
+        mascotas m
+    INNER JOIN 
+        razas r ON m.fk_id_raza = r.id_raza
+    INNER JOIN 
+        categorias c ON r.fk_id_categoria = c.id_categoria  
+    INNER JOIN 
+        municipios mu ON m.fk_id_municipio = mu.id_municipio
+    INNER JOIN 
+        departamentos d ON mu.fk_id_departamento = d.id_departamento  
+    LEFT JOIN 
+        adopciones a ON m.id_mascota = a.fk_id_mascota
+    LEFT JOIN 
+        usuarios u ON a.fk_id_usuario_adoptante = u.id_usuario
+    WHERE 
+        m.estado = 'Adoptado'
+        `;
     let params = [];
 
     // Filtrar por ID de mascota
@@ -149,7 +156,6 @@ WHERE
       params.push(id_mascota);
     }
 
-    // Filtrar por fecha
     if (tipo_fecha === "dia") {
       query += " AND DATE(m.fecha_nacimiento) = ?";
       params.push(fecha_inicio);
@@ -162,11 +168,6 @@ WHERE
       params.push(fecha_inicio, fecha_fin);
     }
 
-    // Filtrar por categoría
-    if (categoria) {
-      query += " AND c.id_categoria = ?";
-      params.push(categoria);
-    }
 
     // Filtrar por raza
     if (raza) {
@@ -220,6 +221,3 @@ WHERE
   }
 };
   
-
-
-

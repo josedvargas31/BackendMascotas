@@ -1,3 +1,4 @@
+
 // controllers/reporteController.js
 import { pool } from "../database/conexion.js";
 import PDFDocument from "pdfkit";
@@ -193,6 +194,14 @@ export const generarReporteAdoptadosPDF = async (req, res) => {
           message: "Parámetros de fecha insuficientes",
         });
       }
+
+            // Validación: Si se selecciona una categoría, también se debe seleccionar una raza
+            if (categoria && !raza) {
+              return res.status(400).json({
+                status: 400,
+                message: "Debe seleccionar una raza si ha seleccionado una categoría.",
+              });
+            }
   
       // Construir la consulta SQL con filtros
       let query = `
@@ -200,27 +209,27 @@ SELECT
     m.id_mascota,
     m.nombre_mascota, 
     m.fecha_nacimiento, 
+    r.nombre_raza,
     c.nombre_categoria, 
-    r.nombre_raza, 
     m.estado,
     m.esterilizado,
     m.tamano,
     m.peso,
-    m.descripcion,
-    d.nombre_departamento,  
+    m.descripcion, 
     mu.nombre_municipio,
+    d.nombre_departamento,
     u.nombre AS nombre_usuario_adoptante, 
     u.apellido AS apellido_usuario_adoptante
 FROM 
     mascotas m
 INNER JOIN 
-    categorias c ON m.fk_id_categoria = c.id_categoria
-INNER JOIN 
     razas r ON m.fk_id_raza = r.id_raza
 INNER JOIN 
-    departamentos d ON m.fk_id_departamento = d.id_departamento
+    categorias c ON r.fk_id_categoria = c.id_categoria  
 INNER JOIN 
     municipios mu ON m.fk_id_municipio = mu.id_municipio
+INNER JOIN 
+    departamentos d ON mu.fk_id_departamento = d.id_departamento  
 LEFT JOIN 
     adopciones a ON m.id_mascota = a.fk_id_mascota
 LEFT JOIN 
@@ -307,6 +316,3 @@ WHERE
     }
   };
   
-
-
-

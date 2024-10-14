@@ -105,28 +105,38 @@ export const generarReporteEXCEL = async (req, res) => {
       });
     }
 
+          // Validación: Si se selecciona una categoría, también se debe seleccionar una raza
+          if (categoria && !raza) {
+            return res.status(400).json({
+              status: 400,
+              message: "Debe seleccionar una raza si ha seleccionado una categoría.",
+            });
+          }
+          
     // Construir la consulta SQL con filtros
     let query = `
-      SELECT 
-        m.id_mascota,
-        m.nombre_mascota, 
-        m.fecha_nacimiento, 
-        c.nombre_categoria, 
-        r.nombre_raza, 
-        m.estado,
-        m.esterilizado,
-        m.tamano,
-        m.peso,
-        m.descripcion,
-        d.nombre_departamento,  
-        mu.nombre_municipio    
-      FROM mascotas m
-      INNER JOIN categorias c ON m.fk_id_categoria = c.id_categoria
-      INNER JOIN razas r ON m.fk_id_raza = r.id_raza
-      INNER JOIN departamentos d ON m.fk_id_departamento = d.id_departamento
-      INNER JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
-      WHERE m.estado IN ('En Adopcion', 'Urgente')
-    `;
+    SELECT 
+      m.id_mascota,
+      m.nombre_mascota, 
+      m.fecha_nacimiento, 
+      r.nombre_raza, 
+      c.nombre_categoria, 
+      m.estado,
+      m.esterilizado,
+      m.tamano,
+      m.peso,
+      m.descripcion,
+      mu.nombre_municipio,
+      d.nombre_departamento 
+    FROM mascotas m
+    INNER JOIN razas r ON m.fk_id_raza = r.id_raza
+    INNER JOIN categorias c ON r.fk_id_categoria = c.id_categoria  
+    INNER JOIN municipios mu ON m.fk_id_municipio = mu.id_municipio
+    INNER JOIN departamentos d ON mu.fk_id_departamento = d.id_departamento 
+    WHERE m.estado IN ('En Adopcion', 'Urgente')
+  `;
+  
+  
     let params = [];
 
     // Filtrar por fecha
@@ -142,11 +152,6 @@ export const generarReporteEXCEL = async (req, res) => {
       params.push(fecha_inicio, fecha_fin);
     }
 
-    // Filtrar por categoría
-    if (categoria) {
-      query += " AND c.id_categoria = ?";
-      params.push(categoria);
-    }
 
     // Filtrar por raza
     if (raza) {
